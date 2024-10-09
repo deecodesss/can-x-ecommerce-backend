@@ -1,6 +1,7 @@
 const express = require("express");
 const {
   approveVendor,
+  approveCustomer,
   productApproval,
   addBanner,
   createCoupon,
@@ -198,6 +199,7 @@ router.post("/category/select", markSelectedCategories);
 
 // Other routes
 router.post("/approveVendor", approveVendor);
+router.post("/approveCustomer", approveCustomer);
 router.post("/approveProduct", productApproval);
 router.get("/coupons", getAllCoupons);
 router.post("/createCoupon", createCoupon);

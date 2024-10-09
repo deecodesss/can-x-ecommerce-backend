@@ -84,6 +84,8 @@ app.use("/slider", homeSliderRoute);
 app.use("/popup", popupRoute);
 app.use("/testimonial", testimonialRoute);
 app.use("/giftcard", giftCardRoute);
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 
 const PORT = process.env.PORT || 5000;
 

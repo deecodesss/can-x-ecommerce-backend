@@ -8,8 +8,14 @@ const User = require("../models/userModel");
 const bcrypt = require("bcryptjs");
 const nodemailer = require("nodemailer");
 const { sendEmail } = require("../config/sendEmail");
+const { max } = require("moment-timezone");
 const router = express.Router();
 require("dotenv").config();
+const path = require('path');
+const multer = require("multer");
+const fs = require('fs');
+
+
 
 // Google strategy for login
 passport.use(
@@ -76,9 +82,30 @@ passport.deserializeUser(async (id, done) => {
   }
 });
 
-router.post("/local/register", async (req, res) => {
+// Set up multer storage
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const dir = 'uploads/aadhar/'; // Directory for aadhar images
+    // Check if the directory exists, if not create it
+    fs.mkdirSync(dir, { recursive: true });
+    cb(null, dir); // Set the destination for uploaded files
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + path.extname(file.originalname)); // Use path.extname to get the file extension
+  },
+});
+
+// Initialize multer
+const upload = multer({ storage: storage });
+
+module.exports = upload;
+
+router.post("/local/register", upload.fields([
+  { name: 'aadharFront', maxCount: 1, },
+  { name: 'aadharBack', maxCount: 1, },
+]), async (req, res) => {
   try {
-    const { name, email, role, category, phone, password } = req.body;
+    const { firstName, lastName, email, phone, shopNumber, gstNumber, panNumber, aadharNumber, role, category, password, } = req.body;
 
     // Check if the email is already registered
     const existingUser = await User.findOne({ email });
@@ -91,22 +118,30 @@ router.post("/local/register", async (req, res) => {
 
     // Create a new user
     const newUser = new User({
-      name,
+      firstName,
+      lastName,
       email,
+      phone,
+      shopNumber,
+      gstNumber,
+      panNumber,
+      aadharNumber,
       role,
       local: {
         password: hashedPassword,
       },
       category,
-      phone,
+      aadharFrontImage: req.files['aadharFront'] ? req.files['aadharFront'][0].filename : '',
+      aadharBackImage: req.files['aadharBack'] ? req.files['aadharBack'][0].filename : '',
     });
 
     // Save the new user to the database
     await newUser.save();
 
-    if (role === "vendor") {
-      const subject = "Vendor Registration Request";
-      const message = `
+    const isVendor = role == 'vendor';
+
+    const subject = `${isVendor ? "Vendor" : "User"} Registration Request`;
+    const message = `
       <html>
         <head>
           <style>
@@ -143,8 +178,8 @@ router.post("/local/register", async (req, res) => {
         </head>
         <body>
           <div class="container">
-            <h2>Dear ${name},</h2>
-            <p>Your vendor registration request has been received. Our team will review your request within 24 hours.</p>
+            <h2>Dear ${firstName} ${lastName},</h2>
+            <p>Your ${isVendor ? "vendor" : "user"} registration request has been received. Our team will review your request within 24 hours.</p>
             <p>Thank you for registering with us. You will receive an email notification once your account has been approved.</p>
             <p>In the meantime, feel free to explore our website to learn more about our products and services.</p>
             <p>You can visit our website at <a href="${process.env.CLIENT_URL}" target="_blank">${process.env.CLIENT_URL}</a>.</p>
@@ -156,8 +191,7 @@ router.post("/local/register", async (req, res) => {
       </html>
     `;
 
-      await sendEmail(name, email, subject, message);
-    }
+    // await sendEmail(email, subject, message);
 
     // Respond with success message
     res.status(201).json({
@@ -219,6 +253,7 @@ const successRedirect = (req, res) => {
 
 router.post("/local/login", (req, res, next) => {
   passport.authenticate("local", (err, user, info) => {
+    console.log("user", user);
     if (err) {
       return next(err);
     }
@@ -431,7 +466,7 @@ router.post("/reset", async (req, res) => {
   }
 });
 
-// Route to get all users
+// Route to get all users 
 router.get("/getUsers", async (req, res) => {
   try {
     // Fetch all users from the database
