@@ -138,10 +138,10 @@ router.post("/local/register", upload.fields([
     // Save the new user to the database
     await newUser.save();
 
-    const isVendor = role == 'vendor';
 
-    const subject = `${isVendor ? "Vendor" : "User"} Registration Request`;
-    const message = `
+    const subject = `Vendor Registration Request`;
+    if (role === 'vendor') {
+      const message = `
       <html>
         <head>
           <style>
@@ -179,7 +179,7 @@ router.post("/local/register", upload.fields([
         <body>
           <div class="container">
             <h2>Dear ${firstName} ${lastName},</h2>
-            <p>Your ${isVendor ? "vendor" : "user"} registration request has been received. Our team will review your request within 24 hours.</p>
+            <p>Your Vendor registration request has been received. Our team will review your request within 24 hours.</p>
             <p>Thank you for registering with us. You will receive an email notification once your account has been approved.</p>
             <p>In the meantime, feel free to explore our website to learn more about our products and services.</p>
             <p>You can visit our website at <a href="${process.env.CLIENT_URL}" target="_blank">${process.env.CLIENT_URL}</a>.</p>
@@ -191,7 +191,8 @@ router.post("/local/register", upload.fields([
       </html>
     `;
 
-    // await sendEmail(email, subject, message);
+      await sendEmail(email, subject, message);
+    }
 
     // Respond with success message
     res.status(201).json({
@@ -226,6 +227,11 @@ passport.use(
         // Check if user role is vendor and vendor access is approved
         if (user.role === 'vendor' && !user.vendorAccess) {
           return done(null, false, { message: 'Vendor access is not approved yet.' });
+        }
+
+        // Check if user role is user and customer access is approved
+        if (user.role === 'user' && !user.customerAccess) {
+          return done(null, false, { message: 'User access is not approved yet.' });
         }
 
         // Check if password matches
