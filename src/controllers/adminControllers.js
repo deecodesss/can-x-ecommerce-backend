@@ -99,58 +99,58 @@ const approveCustomer = async (req, res) => {
     customer.customerAccess = true;
     await customer.save();
 
-    const approvalEmailMessage = `
-  <html>
-    <head>
-      <style>
-        body {
-          font-family: Arial, sans-serif;
-          background-color: #f4f4f4;
-          padding: 20px;
-        }
-        .container {
-          background-color: #fff;
-          border-radius: 5px;
-          padding: 20px;
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-        h2 {
-          color: #333;
-          margin-bottom: 20px;
-        }
-        p {
-          color: #555;
-          margin-bottom: 10px;
-        }
-        .button {
-          background-color: #007bff;
-          color: #fff;
-          padding: 10px 20px;
-          text-decoration: none;
-          border-radius: 5px;
-          display: inline-block;
-        }
-      </style>
-    </head>
-    <body>
-      <div class="container">
-        <h2>Congratulations! Your account has been approved.</h2>
-        <p>Hello ${vendor.name},</p>
-        <p>Your account at our platform has been approved. You can now start purchasing.</p>
-        <p>If you have any questions or need assistance, feel free to contact us.</p>
-        // <a href="${process.env.CLIENT_URL}/vendor-login" class="button">Start Buying</a>
-      </div>
-    </body>
-  </html>
-`;
+    //     const approvalEmailMessage = `
+    //   <html>
+    //     <head>
+    //       <style>
+    //         body {
+    //           font-family: Arial, sans-serif;
+    //           background-color: #f4f4f4;
+    //           padding: 20px;
+    //         }
+    //         .container {
+    //           background-color: #fff;
+    //           border-radius: 5px;
+    //           padding: 20px;
+    //           box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    //         }
+    //         h2 {
+    //           color: #333;
+    //           margin-bottom: 20px;
+    //         }
+    //         p {
+    //           color: #555;
+    //           margin-bottom: 10px;
+    //         }
+    //         .button {
+    //           background-color: #007bff;
+    //           color: #fff;
+    //           padding: 10px 20px;
+    //           text-decoration: none;
+    //           border-radius: 5px;
+    //           display: inline-block;
+    //         }
+    //       </style>
+    //     </head>
+    //     <body>
+    //       <div class="container">
+    //         <h2>Congratulations! Your account has been approved.</h2>
+    //         <p>Hello ${vendor.name},</p>
+    //         <p>Your account at our platform has been approved. You can now start purchasing.</p>
+    //         <p>If you have any questions or need assistance, feel free to contact us.</p>
+    //         // <a href="${process.env.CLIENT_URL}/vendor-login" class="button">Start Buying</a>
+    //       </div>
+    //     </body>
+    //   </html>
+    // `;
 
     // Send approval email
-    await sendEmail(
-      vendor.name,
-      vendor.email,
-      "Account Approval",
-      approvalEmailMessage
-    );
+    // await sendEmail(
+    //   vendor.name,
+    //   vendor.email,
+    //   "Account Approval",
+    //   approvalEmailMessage
+    // );
 
     res.status(200).json({ message: "Customer approved successfully" });
   } catch (error) {
