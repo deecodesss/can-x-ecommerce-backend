@@ -264,7 +264,7 @@ router.post("/local/login", (req, res, next) => {
       return next(err);
     }
     if (!user) {
-      return res.status(401).json({ message: "Incorrect email or password." });
+      return res.status(401).json({ message: info.message });
     }
     req.logIn(user, (err) => {
       if (err) {
