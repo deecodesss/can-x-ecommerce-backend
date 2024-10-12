@@ -3,6 +3,37 @@ const mongoose = require("mongoose");
 const productSchema = new mongoose.Schema({
   title: { type: String, required: true },
   description: { type: String, required: true },
+  cashDiscount: {
+    type: [
+      {
+        timePeriod: { type: Number },
+        discountValue: { type: Number, default: 0 },
+      }
+    ]
+  },
+  interestRate: {
+    type: [
+      {
+        timePeriod: { type: Number },
+        interestValue: { type: Number, default: 0 },
+        gracePeriod: { type: Number, default: 0 },
+      }
+    ]
+  },
+  // cashDiscount: {
+  //   "0-30": { type: Number, default: 0 },
+  //   "30-60": { type: Number, default: 0 },
+  //   "60-90": { type: Number, default: 0 },
+  //   "90-120": { type: Number, default: 0 },
+  // },
+  // interestRate: {
+  //   "0-30": { type: Number, default: 0 },
+  //   "30-60": { type: Number, default: 0 },
+  //   "60-90": { type: Number, default: 0 },
+  //   "90-120": { type: Number, default: 0 },
+  //   gracePeriod: { type: Number },
+  //   // Add more periods as needed
+  // },
   discounts: { type: Boolean, default: false },
   discountValue: { type: Number, default: 0 },
   price: { type: Number, required: true },
@@ -41,6 +72,8 @@ const productSchema = new mongoose.Schema({
       attributeImage: { type: String },
     },
   ],
+
+
   featured: { type: Boolean, default: false },
   isStock: { type: Boolean, default: false },
   threeDiaLinkHor: { type: String },
