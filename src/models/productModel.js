@@ -20,26 +20,15 @@ const productSchema = new mongoose.Schema({
       }
     ]
   },
-  // cashDiscount: {
-  //   "0-30": { type: Number, default: 0 },
-  //   "30-60": { type: Number, default: 0 },
-  //   "60-90": { type: Number, default: 0 },
-  //   "90-120": { type: Number, default: 0 },
-  // },
-  // interestRate: {
-  //   "0-30": { type: Number, default: 0 },
-  //   "30-60": { type: Number, default: 0 },
-  //   "60-90": { type: Number, default: 0 },
-  //   "90-120": { type: Number, default: 0 },
-  //   gracePeriod: { type: Number },
-  //   // Add more periods as needed
-  // },
+
   discounts: { type: Boolean, default: false },
   discountValue: { type: Number, default: 0 },
   price: { type: Number, required: true },
   currency: { type: String },
   available: { type: Number },
   pieces: { type: Number },
+  minQuantity: { type: Number },
+  quantityIncrement: { type: Number },
   promotional: { type: String },
   editorContent: { type: String },
   width: { type: Number },
