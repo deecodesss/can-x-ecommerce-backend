@@ -200,10 +200,10 @@ const applyCoupon = async (req, res) => {
     user.couponsApplied.push(coupon._id);
     await user.save();
 
-    return res.status(200).json({ 
-      message: "Coupon applied successfully", 
-      coupon, 
-      cart: { ...cart.toObject(), couponDiscountedTotal: roundedCouponDiscountedTotal } 
+    return res.status(200).json({
+      message: "Coupon applied successfully",
+      coupon,
+      cart: { ...cart.toObject(), couponDiscountedTotal: roundedCouponDiscountedTotal }
     });
   } catch (error) {
     console.error("Error applying coupon:", error);
