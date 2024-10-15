@@ -17,11 +17,40 @@ const cartSchema = new mongoose.Schema({
         type: Number,
         default: 1,
       },
+      discount: {
+        type: Number,
+        default: 0,
+      },
       updatedPrice: {
         type: Number,
       },
+      discountedPrice: {
+        type: Number,
+        default: 0,
+      },
+      purchaseType: {
+        type: String,
+        enum: ["credit", "cash"],
+        default: "credit",
+      },
+      paymentPeriod: {
+        type: Number,
+        // default: 0,
+      }
     },
   ],
+  cartTotal: {
+    type: Number,
+    default: 0,
+  },
+  discountsTotal: {
+    type: Number,
+    default: 0,
+  },
+  payableTotalPrice: {
+    type: Number,
+    default: 0,
+  },
   couponId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Coupon",

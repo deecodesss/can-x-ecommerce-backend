@@ -4,53 +4,107 @@ const Product = require("../models/productModel");
 const Coupon = require("../models/couponModel");
 
 const addToCart = async (req, res) => {
-  const { userId, productId, quantity } = req.body;
+  const { userId, productId, quantity, purchaseType, paymentPeriod } = req.body;
 
   try {
+    // Validate the user
     const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
+    if (!user) return res.status(404).json({ message: "User not found" });
 
+    // Validate the product
     const existingProduct = await Product.findById(productId);
-    if (!existingProduct) {
-      return res.status(404).json({ message: `Product with ID ${productId} not found` });
-    }
+    if (!existingProduct) return res.status(404).json({ message: `Product with ID ${productId} not found` });
 
-    // Parse the quantity as an integer and validate it
-    let parsedQuantity = parseInt(quantity, 10);
+    // Parse the quantity and ensure it's valid
+    const parsedQuantity = parseInt(quantity, 10);
     if (isNaN(parsedQuantity) || parsedQuantity <= 0) {
       return res.status(400).json({ message: "Quantity must be a valid integer greater than 0" });
     }
 
-    // Check if the cart already exists
+    // Initialize discount value
+    let discountValue = 0;
+
+    // Calculate discount if applicable
+    if (purchaseType === "credit" && paymentPeriod) {
+      const cashDiscount = existingProduct.cashDiscount;
+
+      for (const discount of cashDiscount) {
+        if (paymentPeriod <= discount.timePeriod) {
+          discountValue = discount.discountValue;
+          break;
+        }
+      }
+    }
+
+    // Calculate original and discounted prices
+    const originalPrice = existingProduct.price * parsedQuantity;
+    const discountedPrice = discountValue > 0 ? originalPrice - (originalPrice * discountValue / 100) : originalPrice;
+
+    // Ensure discountedPrice is not NaN
+    const finalDiscountedPrice = isNaN(discountedPrice) ? originalPrice : discountedPrice;
+
+    // Check if the cart already exists for the user
     let cart = await Cart.findOne({ userId });
 
-    // If no cart, create one
+    // Initialize totals
+    let discountsTotal = 0;
+    let totalAmount = 0;
+    let cartTotal = 0;
+    // If no cart exists, create a new cart
     if (!cart) {
-      const updatedPrice = existingProduct.price * parsedQuantity; // Calculate initial price
       cart = new Cart({
         userId,
-        products: [{ productId, quantity: parsedQuantity, updatedPrice }],
+        products: [{
+          productId,
+          quantity: parsedQuantity,
+          discount: discountValue,
+          updatedPrice: originalPrice,
+          discountedPrice: finalDiscountedPrice,
+          purchaseType,
+          paymentPeriod,
+        }],
+        cartTotal: originalPrice,
+        discountsTotal: originalPrice - finalDiscountedPrice,
+        payableTotalPrice: finalDiscountedPrice,
       });
     } else {
-      // Find if the product is already in the cart
+      // Update cart
       const existingCartItem = cart.products.find(item => item.productId.toString() === productId);
 
       if (existingCartItem) {
-        // If the product exists in the cart, update the quantity and price
+        // If product exists, update the quantity and prices
         existingCartItem.quantity += parsedQuantity;
-        existingCartItem.updatedPrice += existingProduct.price * parsedQuantity; // Update price based on new quantity
+        existingCartItem.updatedPrice = (existingCartItem.updatedPrice || 0) + originalPrice; // Ensure default value
+        existingCartItem.discountedPrice = (existingCartItem.discountedPrice || 0) + finalDiscountedPrice; // Ensure default value
       } else {
-        // If the product does not exist, add it to the cart
-        const updatedPrice = existingProduct.price * parsedQuantity; // Calculate price
-        cart.products.push({ productId, quantity: parsedQuantity, updatedPrice });
+        // Add new product to cart
+        cart.products.push({
+          productId,
+          quantity: parsedQuantity,
+          discount: discountValue,
+          updatedPrice: originalPrice,
+          discountedPrice: finalDiscountedPrice,
+          purchaseType,
+          paymentPeriod,
+        });
       }
+
+      // Calculate new totals
+      // discountsTotal = cart.products.reduce((total, item) => total + item.updatedPrice - item.discountedPrice, 0);
+      totalAmount = cart.products.reduce((total, item) => total + item.discountedPrice, 0);
+      cartTotal = cart.products.reduce((total, item) => total + item.updatedPrice, 0);
+
+
+      // Update cart totals
+      cart.cartTotal = cartTotal;
+      cart.discountsTotal = cartTotal - totalAmount;
+      cart.payableTotalPrice = totalAmount;
     }
 
     // Save the cart
     await cart.save();
 
+    // Respond with cart details
     res.status(201).json({ message: "Product added to cart successfully", cart });
   } catch (error) {
     console.error("Error adding product to cart:", error);
