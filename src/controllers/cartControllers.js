@@ -76,6 +76,9 @@ const addToCart = async (req, res) => {
         existingCartItem.quantity += parsedQuantity;
         existingCartItem.updatedPrice = (existingCartItem.updatedPrice || 0) + originalPrice; // Ensure default value
         existingCartItem.discountedPrice = (existingCartItem.discountedPrice || 0) + finalDiscountedPrice; // Ensure default value
+        existingCartItem.discount = discountValue;
+        existingCartItem.purchaseType = purchaseType;
+        existingCartItem.paymentPeriod = paymentPeriod;
       } else {
         // Add new product to cart
         cart.products.push({
