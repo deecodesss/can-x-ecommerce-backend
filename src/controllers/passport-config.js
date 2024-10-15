@@ -105,7 +105,7 @@ router.post("/local/register", upload.fields([
   { name: 'aadharBack', maxCount: 1, },
 ]), async (req, res) => {
   try {
-    const { firstName, lastName, email, phone, shopNumber, gstNumber, panNumber, aadharNumber, role, category, password, } = req.body;
+    const { firstName, lastName, email, phone, shopName, shopNumber, shopAddress, gstNumber, panNumber, aadharNumber, role, category, password, } = req.body;
 
     // Check if the email is already registered
     const existingUser = await User.findOne({ email });
@@ -122,7 +122,9 @@ router.post("/local/register", upload.fields([
       lastName,
       email,
       phone,
+      shopName,
       shopNumber,
+      shopAddress,
       gstNumber,
       panNumber,
       aadharNumber,
@@ -196,11 +198,12 @@ router.post("/local/register", upload.fields([
 
     // Respond with success message
     res.status(201).json({
-      message: "Registration successful",
-      user: {
-        ...newUser.toObject(),
-        token: generateToken(newUser._id),
-      },
+      success: true,
+      message: "Your registration request has been received. Our team will review your request within 24 hours.",
+      // user: {
+      //   ...newUser.toObject(),
+      //   token: generateToken(newUser._id),
+      // },
     });
   } catch (error) {
     console.error("Error registering user:", error);
@@ -231,7 +234,7 @@ passport.use(
 
         // Check if user role is user and customer access is approved
         if (user.role === 'user' && !user.customerAccess) {
-          return done(null, false, { message: 'User access is not approved yet.' });
+          return done(null, false, { message: 'Your request is not approved yet.' });
         }
 
         // Check if password matches

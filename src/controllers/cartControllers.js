@@ -4,7 +4,8 @@ const Product = require("../models/productModel");
 const Coupon = require("../models/couponModel");
 
 const addToCart = async (req, res) => {
-  const { userId, productId, quantity, updatedPrice } = req.body;
+  const { userId, productId, quantity } = req.body;
+
   try {
     const user = await User.findById(userId);
     if (!user) {
@@ -13,40 +14,50 @@ const addToCart = async (req, res) => {
 
     const existingProduct = await Product.findById(productId);
     if (!existingProduct) {
-      return res
-        .status(404)
-        .json({ message: `Product with ID ${productId} not found` });
+      return res.status(404).json({ message: `Product with ID ${productId} not found` });
     }
 
+    // Parse the quantity as an integer and validate it
+    let parsedQuantity = parseInt(quantity, 10);
+    if (isNaN(parsedQuantity) || parsedQuantity <= 0) {
+      return res.status(400).json({ message: "Quantity must be a valid integer greater than 0" });
+    }
+
+    // Check if the cart already exists
     let cart = await Cart.findOne({ userId });
 
+    // If no cart, create one
     if (!cart) {
-      // If cart doesn't exist, create a new one
+      const updatedPrice = existingProduct.price * parsedQuantity; // Calculate initial price
       cart = new Cart({
         userId,
-        products: [{ productId, quantity, updatedPrice }],
+        products: [{ productId, quantity: parsedQuantity, updatedPrice }],
       });
     } else {
-      const existingCartItem = cart.products.find(
-        (item) => item.productId.toString() === productId
-      );
+      // Find if the product is already in the cart
+      const existingCartItem = cart.products.find(item => item.productId.toString() === productId);
+
       if (existingCartItem) {
-        existingCartItem.quantity += quantity;
+        // If the product exists in the cart, update the quantity and price
+        existingCartItem.quantity += parsedQuantity;
+        existingCartItem.updatedPrice += existingProduct.price * parsedQuantity; // Update price based on new quantity
       } else {
-        cart.products.push({ productId, quantity, updatedPrice });
+        // If the product does not exist, add it to the cart
+        const updatedPrice = existingProduct.price * parsedQuantity; // Calculate price
+        cart.products.push({ productId, quantity: parsedQuantity, updatedPrice });
       }
     }
 
+    // Save the cart
     await cart.save();
 
-    res
-      .status(201)
-      .json({ message: "Product added to cart successfully", cart });
+    res.status(201).json({ message: "Product added to cart successfully", cart });
   } catch (error) {
     console.error("Error adding product to cart:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };
+
 
 const removeFromCart = async (req, res) => {
   const { userId, productId } = req.body;
@@ -200,10 +211,10 @@ const applyCoupon = async (req, res) => {
     user.couponsApplied.push(coupon._id);
     await user.save();
 
-    return res.status(200).json({ 
-      message: "Coupon applied successfully", 
-      coupon, 
-      cart: { ...cart.toObject(), couponDiscountedTotal: roundedCouponDiscountedTotal } 
+    return res.status(200).json({
+      message: "Coupon applied successfully",
+      coupon,
+      cart: { ...cart.toObject(), couponDiscountedTotal: roundedCouponDiscountedTotal }
     });
   } catch (error) {
     console.error("Error applying coupon:", error);
