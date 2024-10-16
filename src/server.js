@@ -20,12 +20,13 @@ const homeSliderRoute = require("./routes/homeSliderRoute");
 const testimonialRoute = require("./routes/testimonialRoute");
 const popupRoute = require("./routes/popupRoute");
 const giftCardRoute = require("./routes/giftCardRoute");
+const profileRoute = require("./routes/profileRoute");
 var path = require("path");
 const bodyParser = require("body-parser");
 const dotenv = require("dotenv");
 const { getBanners } = require("./controllers/adminControllers");
 const stripe = require("stripe")(process.env.STRIPE_PRIVATE_KEY);
-const { stripeWebhook } = require("./controllers/webhookControllers")
+const { stripeWebhook } = require("./controllers/webhookControllers");
 dotenv.config();
 
 connectDB();
@@ -85,6 +86,7 @@ app.use("/popup", popupRoute);
 app.use("/testimonial", testimonialRoute);
 app.use("/giftcard", giftCardRoute);
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use("/profile", profileRoute);
 
 
 const PORT = process.env.PORT || 5000;
