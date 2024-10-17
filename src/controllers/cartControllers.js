@@ -28,12 +28,14 @@ const addToCart = async (req, res) => {
     let interestValue = 0;
 
     // Calculate discount based on purchase type
-    if (purchaseType === "credit" && paymentPeriod) {
+    if (purchaseType === "credit" && paymentPeriod >= 0) {
       // Fetch the applicable cash discount based on the payment period
       const cashDiscount = await CashDiscount.findOne({
         paymentStart: { $lte: paymentPeriod },
         paymentEnd: { $gte: paymentPeriod }
       });
+      console.log('Cash Discount:', cashDiscount);
+
 
       if (cashDiscount) {
         discountValue = cashDiscount.discount; // Apply the discount percentage
@@ -94,32 +96,7 @@ const addToCart = async (req, res) => {
         interestsTotal: totalInterest, // Store the total interest applied
       });
     } else {
-      // Check if the product is already in the cart
-      const existingCartItemIndex = cart.products.findIndex(
-        (item) => item.productId.toString() === productId
-      );
-
-      if (existingCartItemIndex !== -1) {
-        return res.status(400).json({ message: "Product already exists in cart" });
-      }
-
-      // If the product does not exist, add it to the cart
-      cart.products.push({
-        productId,
-        quantity: parsedQuantity,
-        discount: discountValue,
-        interest: interestValue,
-        updatedPrice: originalPrice,
-        finalPrice: finalPrice,
-        purchaseType,
-        paymentPeriod,
-      });
-
-      // Recalculate cart totals
-      cart.cartTotal += originalPrice;
-      cart.payableTotalPrice += finalPrice;
-      cart.discountsTotal += discountValue > 0 ? originalPrice - discountedPrice : 0;
-      cart.interestsTotal += totalInterest; // Update total interests
+      res.status(400).json({ message: "Product already exists in cart" });
     }
 
     // Save the cart
@@ -132,7 +109,6 @@ const addToCart = async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 };
-
 
 const removeFromCart = async (req, res) => {
   const { userId, productId } = req.body;
