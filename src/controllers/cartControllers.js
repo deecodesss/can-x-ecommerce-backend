@@ -96,7 +96,23 @@ const addToCart = async (req, res) => {
         interestsTotal: totalInterest, // Store the total interest applied
       });
     } else {
-      res.status(400).json({ message: "Product already exists in cart" });
+      // Check if the product already exists in the cart
+      const existingProductInCart = cart.products.find(item => item.productId.toString() === productId);
+      if (existingProductInCart) {
+        return res.status(400).json({ message: "Product already exists in cart" });
+      }
+
+      // Add the new product to the cart
+      cart.products.push({
+        productId,
+        quantity: parsedQuantity,
+        discount: discountValue,
+        interest: interestValue,
+        updatedPrice: originalPrice,
+        finalPrice: finalPrice,
+        purchaseType,
+        paymentPeriod,
+      });
     }
 
     // Save the cart
