@@ -94,7 +94,32 @@ const addToCart = async (req, res) => {
         interestsTotal: totalInterest, // Store the total interest applied
       });
     } else {
-      res.status(400).json({ message: "Product already exists in cart" });
+      // Check if the product is already in the cart
+      const existingCartItemIndex = cart.products.findIndex(
+        (item) => item.productId.toString() === productId
+      );
+
+      if (existingCartItemIndex !== -1) {
+        return res.status(400).json({ message: "Product already exists in cart" });
+      }
+
+      // If the product does not exist, add it to the cart
+      cart.products.push({
+        productId,
+        quantity: parsedQuantity,
+        discount: discountValue,
+        interest: interestValue,
+        updatedPrice: originalPrice,
+        finalPrice: finalPrice,
+        purchaseType,
+        paymentPeriod,
+      });
+
+      // Recalculate cart totals
+      cart.cartTotal += originalPrice;
+      cart.payableTotalPrice += finalPrice;
+      cart.discountsTotal += discountValue > 0 ? originalPrice - discountedPrice : 0;
+      cart.interestsTotal += totalInterest; // Update total interests
     }
 
     // Save the cart
@@ -111,40 +136,72 @@ const addToCart = async (req, res) => {
 
 const removeFromCart = async (req, res) => {
   const { userId, productId } = req.body;
+
   try {
+    // Validate the user
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
+    // Validate the product
     const existingProduct = await Product.findById(productId);
     if (!existingProduct) {
-      return res
-        .status(404)
-        .json({ message: `Product with ID ${productId} not found` });
+      return res.status(404).json({ message: `Product with ID ${productId} not found` });
     }
 
+    // Fetch the user's cart
     let cart = await Cart.findOne({ userId });
-
     if (!cart) {
       return res.status(404).json({ message: "Cart not found" });
     }
+
+    // Check if product exists in the cart
     const existingCartItemIndex = cart.products.findIndex(
       (item) => item.productId.toString() === productId
     );
     if (existingCartItemIndex === -1) {
-      return res
-        .status(404)
-        .json({ message: `Product with ID ${productId} not found in cart` });
+      return res.status(404).json({ message: `Product with ID ${productId} not found in cart` });
     }
 
-    // If product exists in the cart, remove it
+    // Store the price and interest of the item being removed
+    const itemToRemove = cart.products[existingCartItemIndex];
+    const itemDiscount = itemToRemove.discount;
+    const itemInterest = itemToRemove.interest;
+    const itemFinalPrice = itemToRemove.finalPrice;
+
+    // Remove the product from the cart
     cart.products.splice(existingCartItemIndex, 1);
+
+    // Recalculate the total cart values after removal
+    let originalCartTotal = 0;
+    let finalCartTotal = 0;
+    let totalDiscounts = 0;
+    let totalInterests = 0;
+
+    for (const product of cart.products) {
+      originalCartTotal += existingProduct.price * product.quantity; // Assuming original price from the existingProduct
+      if (product.discount > 0) {
+        totalDiscounts += (product.discount / 100) * (existingProduct.price * product.quantity);
+      }
+      if (product.interest > 0) {
+        const interest = product.interest;
+        const monthsDelayed = Math.ceil((paymentPeriod - interest.paymentStart) / 30); // Calculate how many months interest applies
+        totalInterests += (interest / 100) * (existingProduct.price * product.quantity) * monthsDelayed;
+      }
+      finalCartTotal += product.finalPrice;
+    }
+
+    // Update cart totals
+    cart.cartTotal = originalCartTotal;
+    cart.payableTotalPrice = finalCartTotal; // This will now reflect the updated final price
+    cart.discountsTotal = totalDiscounts; // Total discounts applied
+    cart.interestsTotal = totalInterests; // Total interests applied
+
+    // Save the updated cart
     await cart.save();
 
-    res
-      .status(200)
-      .json({ message: "Product removed from cart successfully", cart });
+    res.status(200).json({ message: "Product removed from cart successfully", cart });
   } catch (error) {
     console.error("Error removing product from cart:", error);
     res.status(500).json({ message: "Internal server error" });
