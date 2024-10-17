@@ -105,7 +105,7 @@ router.post("/local/register", upload.fields([
   { name: 'aadharBack', maxCount: 1, },
 ]), async (req, res) => {
   try {
-    const { firstName, lastName, email, phone, shopName, shopNumber, shopAddress, gstNumber, panNumber, aadharNumber, role, category, password, } = req.body;
+    const { firstName, lastName, email, phone, creditLimit, shopName, shopNumber, shopAddress, gstNumber, panNumber, aadharNumber, role, category, password, } = req.body;
 
     // Check if the email is already registered
     const existingUser = await User.findOne({ email });
@@ -122,6 +122,7 @@ router.post("/local/register", upload.fields([
       lastName,
       email,
       phone,
+      creditLimit,
       shopName,
       shopNumber,
       shopAddress,
