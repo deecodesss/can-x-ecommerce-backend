@@ -6,6 +6,7 @@ const userSchema = new mongoose.Schema({
   lastName: { type: String, required: true },
   email: { type: String, required: true, unique: true },
   phone: { type: Number, required: true },
+  creditLimit: { type: Number, default: 0 },
   shopName: { type: String, required: true },
   shopNumber: { type: String, required: true },
   shopAddress: { type: String, required: true },
