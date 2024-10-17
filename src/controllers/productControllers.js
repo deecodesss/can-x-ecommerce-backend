@@ -8,6 +8,8 @@ const path = require("path");
 const { Parser } = require("json2csv");
 const mongoose = require("mongoose");
 const Material = require("../models/materialModel");
+const cashDiscount = require("../models/cashDiscountModel");
+const Interest = require("../models/interestModel");
 
 const server_url = process.env.SERVER_URL;
 const getProduct = async (req, res) => {
@@ -151,6 +153,210 @@ const getAllProducts = async (req, res) => {
   }
 };
 
+const addInterests = async (req, res) => {
+  try {
+    const { paymentStart, paymentEnd, interest } = req.body;
+
+    // Check for required fields
+    if (paymentStart == null || paymentEnd == null || interest == null) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    // Check if a cash discount with the same paymentStart and paymentEnd already exists
+    const existingInterest = await Interest.findOne({
+      paymentStart,
+      paymentEnd,
+    });
+
+    if (existingInterest) {
+      return res.status(409).json({
+        success: false,
+        message: "An interest with the same payment period already exists.",
+      });
+    }
+
+    // Create the new cash discount
+    const newInterest = new Interest({
+      paymentStart,
+      paymentEnd,
+      interest,
+    });
+
+    // Save the new cash discount
+    const savedInterest = await newInterest.save();
+    res.status(201).json({
+      success: true,
+      message: "Interest added successfully",
+      data: savedInterest,
+    });
+  } catch (error) {
+    console.error("Error adding interest:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+const getAllCashDiscounts = async (req, res) => {
+  try {
+    // Fetch all cash discounts from the database
+    const cashDiscounts = await cashDiscount.find();
+
+    // Return the cash discounts
+    res.status(200).json({
+      success: true,
+      data: cashDiscounts,
+    });
+  } catch (error) {
+    console.error("Error fetching cash discounts:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+const getAllInterests = async (req, res) => {
+  try {
+    // Fetch all interests from the database
+    const interests = await Interest.find();
+
+    // Return the interests
+    res.status(200).json({
+      success: true,
+      data: interests,
+    });
+  } catch (error) {
+    console.error("Error fetching interests:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+
+const updateCashDiscount = async (req, res) => {
+  try {
+    const { id } = req.params; // Get the ID of the cash discount to update
+    const { paymentStart, paymentEnd, discount } = req.body;
+
+    // Ensure the required fields are provided
+    if (paymentStart == null || paymentEnd == null || discount == null) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required fields",
+      });
+    }
+
+    const updatedCashDiscount = await cashDiscount.findByIdAndUpdate(
+      id,
+      {
+        paymentStart,
+        paymentEnd,
+        discount,
+        updatedAt: Date.now(),
+      },
+      { new: true }
+    );
+
+    if (!updatedCashDiscount) {
+      return res.status(404).json({
+        success: false,
+        message: "Cash discount not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Cash discount updated successfully",
+      data: updatedCashDiscount,
+    });
+  } catch (error) {
+    console.error("Error updating cash discount:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+const updateInterest = async (req, res) => {
+  try {
+    const { id } = req.params; // Get the ID of the interest to update
+    const { paymentStart, paymentEnd, interest } = req.body;
+
+    // Ensure the required fields are provided
+    if (paymentStart == null || paymentEnd == null || interest == null) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required fields",
+      });
+    }
+
+    // Find the interest by ID and update it
+    const updatedInterest = await Interest.findByIdAndUpdate(
+      id,
+      {
+        paymentStart,
+        paymentEnd,
+        interest,
+        updatedAt: Date.now(), // Update the `updatedAt` field if you have one
+      },
+      { new: true } // Return the updated document
+    );
+
+    // If no record is found, return a 404 error
+    if (!updatedInterest) {
+      return res.status(404).json({
+        success: false,
+        message: "Interest not found",
+      });
+    }
+
+    // Return the updated interest
+    res.status(200).json({
+      success: true,
+      message: "Interest updated successfully",
+      data: updatedInterest,
+    });
+  } catch (error) {
+    console.error("Error updating interest:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+const addCashDiscounts = async (req, res) => {
+  try {
+    const { paymentStart, paymentEnd, discount } = req.body;
+
+    // Check for required fields
+    if (paymentStart == null || paymentEnd == null || discount == null) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    // Check if a cash discount with the same paymentStart and paymentEnd already exists
+    const existingDiscount = await cashDiscount.findOne({
+      paymentStart,
+      paymentEnd,
+    });
+
+    if (existingDiscount) {
+      return res.status(409).json({
+        success: false,
+        message: "A cash discount with the same payment period already exists.",
+      });
+    }
+
+    // Create the new cash discount
+    const newCashDiscount = new cashDiscount({
+      paymentStart,
+      paymentEnd,
+      discount,
+    });
+
+    // Save the new cash discount
+    const savedCashDiscount = await newCashDiscount.save();
+    res.status(201).json({
+      success: true,
+      message: "Cash discount added successfully",
+      data: savedCashDiscount,
+    });
+  } catch (error) {
+    console.error("Error adding cash discounts:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
 const createProduct = async (req, res) => {
   try {
     console.log("Request body:", req.body);
@@ -158,8 +364,6 @@ const createProduct = async (req, res) => {
       title,
       description,
       discounts,
-      cashDiscount,
-      interestRate,
       discountValue,
       price,
       currency,
@@ -264,16 +468,12 @@ const createProduct = async (req, res) => {
       attributeImageMap[file.originalname] = file.path;
     });
 
-    const cashDiscountFinal = JSON.parse(cashDiscount || '[]');
-    const interestRateFinal = JSON.parse(interestRate || '[]');
 
     // Create a new Product object
     const newProduct = new Product({
       title,
       description,
       discounts,
-      cashDiscount: cashDiscountFinal,
-      interestRate: interestRateFinal,
       discountValue,
       price,
       currency,
@@ -852,6 +1052,12 @@ const exportCSV = async (req, res) => {
 
 module.exports = {
   createProduct,
+  addCashDiscounts,
+  updateCashDiscount,
+  getAllCashDiscounts,
+  addInterests,
+  updateInterest,
+  getAllInterests,
   editProduct,
   deleteProduct,
   getProduct,

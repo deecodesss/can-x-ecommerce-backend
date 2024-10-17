@@ -3,11 +3,17 @@ const {
   createProduct,
   editProduct,
   deleteProduct,
+  addCashDiscounts,
   getProduct,
   getAllProducts,
   changeStockStatus,
   importCSV,
   exportCSV,
+  updateCashDiscount,
+  getAllCashDiscounts,
+  addInterests,
+  updateInterest,
+  getAllInterests,
 } = require("../controllers/productControllers");
 const router = express.Router();
 const multer = require("multer");
@@ -63,6 +69,14 @@ const arFileStorage = multer.diskStorage({
 const uploadARFile = multer({ storage: arFileStorage });
 
 router.get("/all", getAllProducts);
+
+router.post("/cashDiscount/add", addCashDiscounts);
+router.put("/cashDiscount/update/:id", updateCashDiscount);
+router.get("/cashDiscount/all", getAllCashDiscounts);
+
+router.post("/interest/add", addInterests);
+router.put("/interest/update/:id", updateInterest);
+router.get("/interest/all", getAllInterests);
 
 router.post(
   "/create",
