@@ -364,8 +364,6 @@ const createProduct = async (req, res) => {
       title,
       description,
       discounts,
-      cashDiscount,
-      interestRate,
       discountValue,
       price,
       currency,
@@ -470,16 +468,12 @@ const createProduct = async (req, res) => {
       attributeImageMap[file.originalname] = file.path;
     });
 
-    const cashDiscountFinal = JSON.parse(cashDiscount || '[]');
-    const interestRateFinal = JSON.parse(interestRate || '[]');
 
     // Create a new Product object
     const newProduct = new Product({
       title,
       description,
       discounts,
-      cashDiscount: cashDiscountFinal,
-      interestRate: interestRateFinal,
       discountValue,
       price,
       currency,

@@ -3,24 +3,23 @@ const mongoose = require("mongoose");
 const productSchema = new mongoose.Schema({
   title: { type: String, required: true },
   description: { type: String, required: true },
-  cashDiscount: {
-    type: [
-      {
-        timePeriod: { type: Number },
-        discountValue: { type: Number, default: 0 },
-      }
-    ]
-  },
-  interestRate: {
-    type: [
-      {
-        timePeriod: { type: Number },
-        interestValue: { type: Number, default: 0 },
-        gracePeriod: { type: Number, default: 0 },
-      }
-    ]
-  },
-
+  // cashDiscount: {
+  //   type: [
+  //     {
+  //       timePeriod: { type: Number },
+  //       discountValue: { type: Number, default: 0 },
+  //     }
+  //   ]
+  // },
+  // interestRate: {
+  //   type: [
+  //     {
+  //       timePeriod: { type: Number },
+  //       interestValue: { type: Number, default: 0 },
+  //       gracePeriod: { type: Number, default: 0 },
+  //     }
+  //   ]
+  // },
   discounts: { type: Boolean, default: false },
   discountValue: { type: Number, default: 0 },
   price: { type: Number, required: true },
