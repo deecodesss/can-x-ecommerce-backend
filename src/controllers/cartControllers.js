@@ -2,6 +2,8 @@ const Cart = require("../models/cartModel");
 const User = require("../models/userModel");
 const Product = require("../models/productModel");
 const Coupon = require("../models/couponModel");
+const CashDiscount = require("../models/cashDiscountModel");
+const Interest = require("../models/interestModel");
 
 const addToCart = async (req, res) => {
   const { userId, productId, quantity, purchaseType, paymentPeriod } = req.body;
@@ -21,35 +23,57 @@ const addToCart = async (req, res) => {
       return res.status(400).json({ message: "Quantity must be a valid integer greater than 0" });
     }
 
-    // Initialize discount value
+    // Initialize discount and interest values
     let discountValue = 0;
+    let interestValue = 0;
 
-    // Calculate discount if applicable
+    // Calculate discount based on purchase type
     if (purchaseType === "credit" && paymentPeriod) {
-      const cashDiscount = existingProduct.cashDiscount;
+      // Fetch the applicable cash discount based on the payment period
+      const cashDiscount = await CashDiscount.findOne({
+        paymentStart: { $lte: paymentPeriod },
+        paymentEnd: { $gte: paymentPeriod }
+      });
 
-      for (const discount of cashDiscount) {
-        if (paymentPeriod <= discount.timePeriod) {
-          discountValue = discount.discountValue;
-          break;
-        }
+      if (cashDiscount) {
+        discountValue = cashDiscount.discount; // Apply the discount percentage
       }
     }
 
-    // Calculate original and discounted prices
-    const originalPrice = existingProduct.price * parsedQuantity;
-    const discountedPrice = discountValue > 0 ? originalPrice - (originalPrice * discountValue / 100) : originalPrice;
+    // Fetch the applicable interest based on the payment period
+    const interest = await Interest.findOne({
+      paymentStart: { $lte: paymentPeriod },
+      paymentEnd: { $gte: paymentPeriod }
+    });
 
-    // Ensure discountedPrice is not NaN
-    const finalDiscountedPrice = isNaN(discountedPrice) ? originalPrice : discountedPrice;
+    if (interest) {
+      interestValue = interest.interest; // Apply the interest percentage
+    }
+
+    // Calculate original price
+    const originalPrice = existingProduct.price * parsedQuantity;
+
+    // Calculate discounted price
+    const discountedPrice = originalPrice - (discountValue / 100 * originalPrice); // Apply discount to total
+
+    // Calculate delay based on the payment period defined in cash discount data
+    let totalInterest = 0;
+    if (interestValue > 0) {
+      const interestStartPeriod = interest.paymentStart; // Assuming this is the start of the interest application
+      const daysDelayed = paymentPeriod - interestStartPeriod; // Calculate how many days the payment is delayed
+      const monthsDelayed = Math.ceil(daysDelayed / 30); // Calculate the number of full months delayed
+
+      if (daysDelayed > 0) {
+        totalInterest = (interestValue / 100) * discountedPrice * monthsDelayed; // Calculate total interest for delayed months
+      }
+    }
+
+    // Final price after applying discount and adding interest
+    const finalPrice = discountedPrice + totalInterest;
 
     // Check if the cart already exists for the user
     let cart = await Cart.findOne({ userId });
 
-    // Initialize totals
-    let discountsTotal = 0;
-    let totalAmount = 0;
-    let cartTotal = 0;
     // If no cart exists, create a new cart
     if (!cart) {
       cart = new Cart({
@@ -58,50 +82,19 @@ const addToCart = async (req, res) => {
           productId,
           quantity: parsedQuantity,
           discount: discountValue,
+          interest: interestValue,
           updatedPrice: originalPrice,
-          discountedPrice: finalDiscountedPrice,
+          finalPrice: finalPrice,
           purchaseType,
           paymentPeriod,
         }],
         cartTotal: originalPrice,
-        discountsTotal: originalPrice - finalDiscountedPrice,
-        payableTotalPrice: finalDiscountedPrice,
+        payableTotalPrice: finalPrice,
+        discountsTotal: discountValue > 0 ? originalPrice - discountedPrice : 0,
+        interestsTotal: totalInterest, // Store the total interest applied
       });
     } else {
-      // Update cart
-      const existingCartItem = cart.products.find(item => item.productId.toString() === productId);
-
-      if (existingCartItem) {
-        // If product exists, update the quantity and prices
-        existingCartItem.quantity += parsedQuantity;
-        existingCartItem.updatedPrice = (existingCartItem.updatedPrice || 0) + originalPrice; // Ensure default value
-        existingCartItem.discountedPrice = (existingCartItem.discountedPrice || 0) + finalDiscountedPrice; // Ensure default value
-        existingCartItem.discount = discountValue;
-        existingCartItem.purchaseType = purchaseType;
-        existingCartItem.paymentPeriod = paymentPeriod;
-      } else {
-        // Add new product to cart
-        cart.products.push({
-          productId,
-          quantity: parsedQuantity,
-          discount: discountValue,
-          updatedPrice: originalPrice,
-          discountedPrice: finalDiscountedPrice,
-          purchaseType,
-          paymentPeriod,
-        });
-      }
-
-      // Calculate new totals
-      // discountsTotal = cart.products.reduce((total, item) => total + item.updatedPrice - item.discountedPrice, 0);
-      totalAmount = cart.products.reduce((total, item) => total + item.discountedPrice, 0);
-      cartTotal = cart.products.reduce((total, item) => total + item.updatedPrice, 0);
-
-
-      // Update cart totals
-      cart.cartTotal = cartTotal;
-      cart.discountsTotal = cartTotal - totalAmount;
-      cart.payableTotalPrice = totalAmount;
+      res.status(400).json({ message: "Product already exists in cart" });
     }
 
     // Save the cart

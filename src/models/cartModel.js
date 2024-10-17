@@ -21,10 +21,14 @@ const cartSchema = new mongoose.Schema({
         type: Number,
         default: 0,
       },
+      interest: {
+        type: Number,
+        default: 0,
+      },
       updatedPrice: {
         type: Number,
       },
-      discountedPrice: {
+      finalPrice: {
         type: Number,
         default: 0,
       },
@@ -44,6 +48,10 @@ const cartSchema = new mongoose.Schema({
     default: 0,
   },
   discountsTotal: {
+    type: Number,
+    default: 0,
+  },
+  interestsTotal: {
     type: Number,
     default: 0,
   },
