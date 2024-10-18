@@ -113,6 +113,12 @@ const addToCart = async (req, res) => {
         purchaseType,
         paymentPeriod,
       });
+
+      // Update the cart totals
+      cart.cartTotal += originalPrice; // Add original price of the new product
+      cart.payableTotalPrice += finalPrice; // Add final price of the new product
+      cart.discountsTotal += discountValue > 0 ? originalPrice - discountedPrice : 0; // Update discounts total
+      cart.interestsTotal += totalInterest; // Update total interest
     }
 
     // Save the cart
