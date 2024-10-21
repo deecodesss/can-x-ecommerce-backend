@@ -34,7 +34,7 @@ const app = express();
 
 app.use(
   cors({
-    origin: true,
+    origin: "https://canx-ecommerce-frontend.vercel.app/",
     credentials: true,
   })
 );
