@@ -9,7 +9,6 @@ const SocialMedia = require("../models/socialModel");
 const Menu = require("../models/menuModel");
 const Category = require("../models/categoryModel");
 const Blog = require("../models/blogModel");
-const { ObjectId } = require("mongodb");
 
 const serverUrl = process.env.SERVER_URL;
 

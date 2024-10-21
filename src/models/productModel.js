@@ -50,7 +50,7 @@ const productSchema = new mongoose.Schema({
     ref: "User",
     required: true,
   },
-  approved: { type: Boolean, default: false },
+  approved: { type: Boolean, default: true },
   createdAt: { type: Date, default: Date.now },
   attributes: [
     {
