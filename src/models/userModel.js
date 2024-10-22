@@ -7,8 +7,13 @@ const userSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   phone: { type: Number, required: true },
   creditLimit: { type: Number, default: 0 },
+  usedCredit: { type: Number, default: 0 },
   shopName: { type: String, required: true },
-  shopNumber: { type: String, required: true },
+  // shopNumber: { type: String, required: true },
+  shopOwnerName: { type: String, required: true },
+  pesticideLicense: { type: String, required: true }, //file
+  securityChecksImage: { type: String, required: true }, //file
+  dealershipForm: { type: String, required: true }, //file
   shopAddress: { type: String, required: true },
   gstNumber: { type: String, required: true },
   panNumber: { type: String, required: true },
