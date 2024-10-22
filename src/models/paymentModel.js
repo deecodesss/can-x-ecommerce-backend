@@ -1,10 +1,16 @@
 const mongoose = require("mongoose");
+const { required } = require("nodemon/lib/config");
 
 const paymentSchema = new mongoose.Schema({
   paymentId: {
     type: String,
     required: true,
     unique: true,
+  },
+  customer: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    required: true
   },
   order: {
     type: mongoose.Schema.Types.ObjectId,

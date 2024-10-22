@@ -332,9 +332,10 @@ const createOrder = async (req, res) => {
       await order.save();
       const payment = new Payment({
         paymentId: generateRandomString(),
+        customer: customer,
         order: order._id,
         amount: totalPayableAmount,
-        status: "pending",
+        status: "success",
         paymentMethod: "phonepe",
       })
       payment.save();
@@ -419,7 +420,8 @@ const handlePaymentStatus = async (req, res) => {
 
 const getAllPayments = async (req, res) => {
   try {
-    const payments = await Payment.find();
+    const { userId } = req.params;
+    const payments = await Payment.find({ customer: userId }).sort({ createdAt: -1 });
 
     console.log("All payments:", payments);
     res
