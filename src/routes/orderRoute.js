@@ -12,6 +12,7 @@ const {
   handlePaymentStatus,
   SuccessIPG,
   createOrder,
+  getAllOrderedProductsByUser,
 } = require("../controllers/orderControllers");
 const { applyCoupon } = require("../controllers/cartControllers");
 const router = express.Router();
@@ -28,5 +29,6 @@ router.post("/sendOtp", sendOtp);
 router.post("/verifyOtp", verifyOtp);
 
 router.post("/create", createOrder);
+router.get("/products/:userId", getAllOrderedProductsByUser);
 
 module.exports = router;
