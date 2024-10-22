@@ -453,6 +453,7 @@ const getAllOrderedProductsByUser = async (req, res) => {
           product: item.product,
           quantity: item.quantity,
           price: item.price,
+          dueAmount: item.dueAmount,
           dueDate: item.dueDate
         });
       });
