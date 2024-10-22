@@ -21,6 +21,7 @@ const testimonialRoute = require("./routes/testimonialRoute");
 const popupRoute = require("./routes/popupRoute");
 const giftCardRoute = require("./routes/giftCardRoute");
 const profileRoute = require("./routes/profileRoute");
+const hisaabRoute = require("./routes/hisaabRoute");
 var path = require("path");
 const bodyParser = require("body-parser");
 const dotenv = require("dotenv");
@@ -87,6 +88,7 @@ app.use("/testimonial", testimonialRoute);
 app.use("/giftcard", giftCardRoute);
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use("/profile", profileRoute);
+app.use("/hisaab", hisaabRoute);
 
 
 const PORT = process.env.PORT || 5000;
