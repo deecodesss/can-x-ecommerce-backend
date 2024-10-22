@@ -326,7 +326,7 @@ const createOrder = async (req, res) => {
         lat: lat ?? 0,
         long: long ?? 0,
         products: cart.products.map((product) => ({
-          product: product.id,
+          product: product.productId,
           quantity: product.quantity,
           dueDate: now.setDate(now.getDate() + product.paymentPeriod).toString(),
           price: product.finalPrice,
@@ -437,6 +437,42 @@ const getAllPayments = async (req, res) => {
   }
 };
 
+const getAllOrderedProductsByUser = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const orders = await Order.find({ customer: userId })
+      .populate("products.product")
+      // .populate("products.product._id")
+      .exec();
+
+
+    const allOrderedProducts = [];
+    orders.forEach(order => {
+      order.products.forEach(item => {
+        allOrderedProducts.push({
+          product: item.product,
+          quantity: item.quantity,
+          price: item.price,
+          dueDate: item.dueDate
+        });
+      });
+    });
+
+    if (orders.length === 0) {
+      return res.status(404).json({ message: "No orders found" });
+    } else {
+      res.status(200).json({
+        success: true,
+        message: "Ordered products fetched successfully",
+        data: allOrderedProducts,
+      })
+    }
+  } catch (err) {
+    console.error("Error fetching ordered products:", err);
+    res.status(500).json({ error: "Failed to fetch ordered products" });
+  }
+};
+
 module.exports = {
   createOrder,
   stripePayment,
@@ -448,4 +484,5 @@ module.exports = {
   verifyOtp,
   getAllPayments,
   handlePaymentStatus,
+  getAllOrderedProductsByUser,
 };
