@@ -105,7 +105,7 @@ const getOrdersForUser = async (req, res) => {
 
     const orders = await Order.find({ customer: userId }).populate(
       "products.product"
-    );
+    ).sort({ createdAt: -1 });
 
     return res.status(200).json({ orders });
   } catch (error) {
@@ -118,7 +118,7 @@ const getAllOrders = async (req, res) => {
   try {
     const orders = await Order.find()
       .populate("customer")
-      .populate("products.product");
+      .populate("products.product").sort({ createdAt: -1 });
 
     if (!orders || orders.length === 0) {
       return res.status(404).json({ error: "No orders found" });
@@ -301,7 +301,7 @@ const SuccessIPG = async (req, res) => {
 
 const createOrder = async (req, res) => {
   try {
-    const { customer, address, lat, long } = req.body;
+    const { customer, address, lat, long, orderType } = req.body;
     const user = await User.findById(customer);
     if (!user) {
       return res.status(400).json({ message: "Invalid customer ID" });
@@ -318,16 +318,23 @@ const createOrder = async (req, res) => {
       return res.status(400).json({ message: "Insufficient credit limit" });
     } else {
       console.log(" credit limit:", user.creditLimit, user.usedCredit, totalPayableAmount);
+      const now = new Date();
       const order = new Order({
         customer: customer,
         address: address,
+        orderType: orderType,
         lat: lat ?? 0,
         long: long ?? 0,
         products: cart.products.map((product) => ({
           product: product.id,
-          quantity: product.quantity
+          quantity: product.quantity,
+          dueDate: now.setDate(now.getDate() + product.paymentPeriod).toString(),
+          price: product.finalPrice,
+          dueAmount: orderType === 'credit' ? product.finalPrice : 0,
         })),
         totalAmount: totalPayableAmount,
+        amountPaid: orderType === 'credit' ? 0 : totalPayableAmount,
+        amountRmaining: orderType === 'credit' ? totalPayableAmount : 0,
       });
       await order.save();
       const payment = new Payment({
@@ -335,7 +342,7 @@ const createOrder = async (req, res) => {
         customer: customer,
         order: order._id,
         amount: totalPayableAmount,
-        status: "success",
+        status: "pending",
         paymentMethod: "phonepe",
       })
       payment.save();
@@ -347,9 +354,6 @@ const createOrder = async (req, res) => {
 
       res.status(201).json({ success: true, message: "Ordered successfully!", data: order });
     }
-
-
-
   } catch (err) {
     console.error("Error creating order:", err);
     res.status(500).json({ error: "Failed to create order" });
