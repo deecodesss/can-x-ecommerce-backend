@@ -9,6 +9,7 @@ const CryptoJS = require("crypto-js");
 const moment = require("moment-timezone");
 const Payment = require("../models/paymentModel");
 const { default: mongoose } = require("mongoose");
+const { interest } = require("payu-websdk/wrapper/emi");
 const stripe = require("stripe")(process.env.STRIPE_PRIVATE_KEY);
 
 const client_url = process.env.CLIENT_URL;
@@ -328,6 +329,8 @@ const createOrder = async (req, res) => {
         products: cart.products.map((product) => ({
           product: product.productId,
           quantity: product.quantity,
+          cashDiscount: product.discount,
+          interest: product.interest,
           dueDate: now.setDate(now.getDate() + product.paymentPeriod).toString(),
           price: product.finalPrice,
           dueAmount: orderType === 'credit' ? product.finalPrice : 0,
@@ -442,7 +445,6 @@ const getAllOrderedProductsByUser = async (req, res) => {
     const { userId } = req.params;
     const orders = await Order.find({ customer: userId })
       .populate("products.product")
-      // .populate("products.product._id")
       .exec();
 
 
@@ -454,7 +456,9 @@ const getAllOrderedProductsByUser = async (req, res) => {
           quantity: item.quantity,
           price: item.price,
           dueAmount: item.dueAmount,
-          dueDate: item.dueDate
+          dueDate: item.dueDate,
+          cashDiscount: item.cashDiscount,
+          interest: item.interest,
         });
       });
     });
