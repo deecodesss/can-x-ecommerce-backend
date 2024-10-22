@@ -6,6 +6,9 @@ const orderSchema = new mongoose.Schema({
     ref: "User",
     required: true,
   },
+  orderType: {
+    type: String,
+  },
   address: {
     type: String,
     required: true
@@ -28,11 +31,33 @@ const orderSchema = new mongoose.Schema({
         type: Number,
         required: true,
       },
+      dueDate: {
+        type: Date,
+        required: true,
+      },
+      price: {
+        type: Number,
+        required: true,
+      },
+      dueAmount: {
+        type: Number,
+        default: 0,
+      }
     },
   ],
   totalAmount: {
     type: Number,
     required: true,
+  },
+
+  amountPaid: {
+    type: Number,
+    default: 0,
+  },
+
+  amountRmaining: {
+    type: Number,
+    default: 0,
   },
   status: {
     type: String,
