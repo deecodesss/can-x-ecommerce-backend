@@ -265,7 +265,7 @@ const SuccessIPG = async (req, res) => {
     );
 
     const order = await Order.create({
-      customer:customerId,
+      customer: customerId,
       products,
       totalAmount: chargetotal,
     });
@@ -295,6 +295,63 @@ const SuccessIPG = async (req, res) => {
     res
       .status(500)
       .json({ success: false, message: "Failed to make POST request" });
+  }
+};
+
+
+const createOrder = async (req, res) => {
+  try {
+    const { customer, address, lat, long } = req.body;
+    const user = await User.findById(customer);
+    if (!user) {
+      return res.status(400).json({ message: "Invalid customer ID" });
+    }
+
+    const cart = await Cart.findOne({ userId: customer });
+    if (!cart) {
+      return res.status(400).json({ message: "Cart not found" });
+    }
+    const totalPayableAmount = cart.payableTotalPrice;
+
+    if ((user.creditLimit - user.usedCredit) < totalPayableAmount) {
+      console.log("Insufficient credit limit:", user.creditLimit, user.usedCredit, totalPayableAmount);
+      return res.status(400).json({ message: "Insufficient credit limit" });
+    } else {
+      console.log(" credit limit:", user.creditLimit, user.usedCredit, totalPayableAmount);
+      const order = new Order({
+        customer: customer,
+        address: address,
+        lat: lat ?? 0,
+        long: long ?? 0,
+        products: cart.products.map((product) => ({
+          product: product.id,
+          quantity: product.quantity
+        })),
+        totalAmount: totalPayableAmount,
+      });
+      await order.save();
+      const payment = new Payment({
+        paymentId: generateRandomString(),
+        order: order._id,
+        amount: totalPayableAmount,
+        status: "pending",
+        paymentMethod: "phonepe",
+      })
+      payment.save();
+      order.payment = payment._id;
+      order.save();
+      user.usedCredit += totalPayableAmount;
+      user.save();
+      await Cart.findByIdAndDelete(cart._id);
+
+      res.status(201).json({ success: true, message: "Ordered successfully!", data: order });
+    }
+
+
+
+  } catch (err) {
+    console.error("Error creating order:", err);
+    res.status(500).json({ error: "Failed to create order" });
   }
 };
 
@@ -375,6 +432,7 @@ const getAllPayments = async (req, res) => {
 };
 
 module.exports = {
+  createOrder,
   stripePayment,
   getOrdersForUser,
   getAllOrders,

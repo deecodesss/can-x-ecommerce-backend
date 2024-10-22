@@ -85,7 +85,7 @@ passport.deserializeUser(async (id, done) => {
 // Set up multer storage
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    const dir = 'uploads/aadhar/'; // Directory for aadhar images
+    const dir = 'uploads/user-regsitration/'; // Directory for aadhar images
     // Check if the directory exists, if not create it
     fs.mkdirSync(dir, { recursive: true });
     cb(null, dir); // Set the destination for uploaded files
@@ -103,9 +103,12 @@ module.exports = upload;
 router.post("/local/register", upload.fields([
   { name: 'aadharFront', maxCount: 1, },
   { name: 'aadharBack', maxCount: 1, },
+  { name: 'pesticideLicense', maxCount: 1, },
+  { name: 'dealershipForm', maxCount: 1, },
+  { name: 'securityChecksImage', maxCount: 1, },
 ]), async (req, res) => {
   try {
-    const { firstName, lastName, email, phone, creditLimit, shopName, shopNumber, shopAddress, gstNumber, panNumber, aadharNumber, role, category, password, } = req.body;
+    const { firstName, lastName, email, phone, creditLimit, shopName, shopOwnerName, shopAddress, gstNumber, panNumber, aadharNumber, role, category, password, } = req.body;
 
     // Check if the email is already registered
     const existingUser = await User.findOne({ email });
@@ -124,7 +127,8 @@ router.post("/local/register", upload.fields([
       phone,
       creditLimit,
       shopName,
-      shopNumber,
+      // shopNumber,
+      shopOwnerName: shopOwnerName,
       shopAddress,
       gstNumber,
       panNumber,
@@ -136,11 +140,13 @@ router.post("/local/register", upload.fields([
       category,
       aadharFrontImage: req.files['aadharFront'] ? req.files['aadharFront'][0].filename : '',
       aadharBackImage: req.files['aadharBack'] ? req.files['aadharBack'][0].filename : '',
+      pesticideLicense: req.files['pesticideLicense'] ? req.files['pesticideLicense'][0].filename : '',
+      dealershipForm: req.files['dealershipForm'] ? req.files['dealershipForm'][0].filename : '',
+      securityChecksImage: req.files['securityChecksImage'] ? req.files['securityChecksImage'][0].filename : '',
     });
 
     // Save the new user to the database
     await newUser.save();
-
 
     const subject = `Vendor Registration Request`;
     if (role === 'vendor') {
