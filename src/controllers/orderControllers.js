@@ -444,7 +444,7 @@ const getAllOrderedProductsByUser = async (req, res) => {
   try {
     const { userId } = req.params;
     const orders = await Order.find({ customer: userId })
-      .populate("products.product")
+      .populate("products.product").sort({ createdAt: -1 })
       .exec();
 
 
