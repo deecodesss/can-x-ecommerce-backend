@@ -19,7 +19,7 @@ const router = express.Router();
 router.post("/ipg-payment", IPGPaymentOrder);
 router.post("/successTransaction", SuccessIPG);
 router.post("/stripe-checkout", stripePayment);
-router.get("/getAllPayments", getAllPayments);
+router.get("/getAllPayments/:userId", getAllPayments);
 router.put("/paymentStatus", handlePaymentStatus);
 router.get("/:userId", getOrdersForUser);
 router.get("/", getAllOrders);
