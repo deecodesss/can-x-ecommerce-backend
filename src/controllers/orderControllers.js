@@ -15,6 +15,12 @@ const stripe = require("stripe")(process.env.STRIPE_PRIVATE_KEY);
 const client_url = process.env.CLIENT_URL;
 const server_url = process.env.SERVER_URL;
 
+function generateOrderId() {
+  const timestamp = Date.now().toString(36).toUpperCase(); // Convert timestamp to base36 for shorter representation
+  const randomStr = crypto.randomBytes(3).toString('hex').toUpperCase(); // Generate a random 3-byte string
+  return `${timestamp}${randomStr}`;
+}
+
 const stripePayment = async (req, res) => {
   const { customer, products, totalAmount, status } = req.body;
   try {
@@ -321,6 +327,7 @@ const createOrder = async (req, res) => {
       console.log(" credit limit:", user.creditLimit, user.usedCredit, totalPayableAmount);
       const now = new Date();
       const order = new Order({
+        orderId: generateOrderId(),
         customer: customer,
         address: address,
         orderType: orderType,

@@ -1,7 +1,10 @@
 const mongoose = require("mongoose");
-const { interest } = require("payu-websdk/wrapper/emi");
 
 const orderSchema = new mongoose.Schema({
+  orderId: {
+    type: String,
+    unique: true,
+  },
   customer: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
