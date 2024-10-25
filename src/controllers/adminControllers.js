@@ -922,7 +922,27 @@ const deleteBlog = async (req, res) => {
   }
 };
 
+const setUserCreditLimit = async (req, res) => {
+  try {
+    const { creditLimit } = req.body;
+    const { userId } = req.params;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+    user.creditLimit = creditLimit;
+    user.save();
+    res.status(200).json({ message: "User credit limit updated successfully" });
+
+  } catch (err) {
+    console.error("Error setting user credit limit:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
 module.exports = {
+  setUserCreditLimit,
   approveVendor,
   approveCustomer,
   productApproval,

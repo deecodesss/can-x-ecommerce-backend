@@ -108,7 +108,7 @@ router.post("/local/register", upload.fields([
   { name: 'securityChecksImage', maxCount: 1, },
 ]), async (req, res) => {
   try {
-    const { firstName, lastName, email, phone, creditLimit, shopName, shopOwnerName, shopAddress, gstNumber, panNumber, aadharNumber, role, category, password, } = req.body;
+    const { firstName, lastName, email, phone, shopName, shopOwnerName, shopAddress, gstNumber, panNumber, aadharNumber, role, category, password, } = req.body;
 
     // Check if the email is already registered
     const existingUser = await User.findOne({ email });
@@ -125,7 +125,6 @@ router.post("/local/register", upload.fields([
       lastName,
       email,
       phone,
-      creditLimit,
       shopName,
       // shopNumber,
       shopOwnerName: shopOwnerName,
