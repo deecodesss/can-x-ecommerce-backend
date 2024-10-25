@@ -36,9 +36,10 @@ const app = express();
 app.use(
   cors({
     origin: [
-      "https://canx-ecommerce-frontend.vercel.app/",
+      "https://canx-ecommerce-frontend.vercel.app",
       "http://localhost:5173",
     ],
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true,
   })
 );
