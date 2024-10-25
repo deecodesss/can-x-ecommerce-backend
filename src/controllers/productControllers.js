@@ -82,10 +82,90 @@ const getProduct = async (req, res) => {
   }
 };
 
+// const getAllProducts = async (req, res) => {
+//   try {
+//     const products = await Product.find().lean();
+//     const productIds = products.map((product) => product._id);
+//     const reviews = await Review.find({ productId: { $in: productIds } }).lean();
+
+//     const reviewsMap = {};
+//     reviews.forEach((review) => {
+//       if (!reviewsMap[review.productId]) {
+//         reviewsMap[review.productId] = [];
+//       }
+//       reviewsMap[review.productId].push(review);
+//     });
+
+//     const productsWithImagesAndRating = products.map((product) => {
+//       // Check if mainImage is defined before using replace
+//       const mainImageURL = product.mainImage ? `${server_url}/${product.mainImage.replace(/\\/g, "/")}` : null;
+
+//       // Check if additionalImages is defined and map it safely
+//       const additionalImagesURLs = product.additionalImages
+//         ? product.additionalImages.map((image) => {
+//           return `${server_url}/${image.replace(/\\/g, "/")}`;
+//         })
+//         : [];
+
+//       const attributeImagesURLs = product.attributes.map((attribute) => {
+//         const attributeImage = attribute.attributeImage;
+//         if (attributeImage) {
+//           const attributeImageURL = attributeImage.startsWith("http")
+//             ? attributeImage
+//             : `${server_url}/${attributeImage.replace(/\\/g, "/")}`;
+//           return {
+//             ...attribute.toObject(),
+//             attributeImage: attributeImageURL,
+//           };
+//         }
+//         return attribute.toObject();
+//       });
+
+//       // Check if arFilePath is defined before using replace
+//       const arFileURL = product.arFilePath
+//         ? `${server_url}/${product.arFilePath.replace(/\\/g, "/")}`
+//         : null;
+
+//       let avgRating = 0;
+//       const productReviews = reviewsMap[product._id];
+//       if (productReviews && productReviews.length > 0) {
+//         const totalRating = productReviews.reduce(
+//           (sum, review) => sum + review.rating,
+//           0
+//         );
+//         avgRating = totalRating / productReviews.length;
+//       }
+
+//       return {
+//         ...product,
+//         mainImage: mainImageURL,
+//         additionalImages: additionalImagesURLs,
+//         attributes: attributeImagesURLs,
+//         avgRating: avgRating.toFixed(1),
+//         arFilePath: arFileURL,
+//       };
+//     });
+
+//     res.status(200).json(productsWithImagesAndRating);
+//   } catch (error) {
+//     console.error("Error fetching products:", error);
+//     res.status(500).json({ error: error.message });
+//   }
+// };
+
 const getAllProducts = async (req, res) => {
   try {
-    const products = await Product.find().lean();
+    // Get category from query parameters and convert it to lowercase
+    const { category } = req.query;
+
+    // Construct the filter for category with case-insensitive matching
+    const filter = category ? { mainCategory: { $regex: new RegExp(category.toLowerCase(), 'i') } } : {};
+
+    // Fetch products based on the filter
+    const products = await Product.find(filter).lean();
     const productIds = products.map((product) => product._id);
+
+    // Fetch reviews only for the fetched products
     const reviews = await Review.find({ productId: { $in: productIds } }).lean();
 
     const reviewsMap = {};
@@ -97,10 +177,8 @@ const getAllProducts = async (req, res) => {
     });
 
     const productsWithImagesAndRating = products.map((product) => {
-      // Check if mainImage is defined before using replace
       const mainImageURL = product.mainImage ? `${server_url}/${product.mainImage.replace(/\\/g, "/")}` : null;
 
-      // Check if additionalImages is defined and map it safely
       const additionalImagesURLs = product.additionalImages
         ? product.additionalImages.map((image) => {
           return `${server_url}/${image.replace(/\\/g, "/")}`;
@@ -121,7 +199,6 @@ const getAllProducts = async (req, res) => {
         return attribute.toObject();
       });
 
-      // Check if arFilePath is defined before using replace
       const arFileURL = product.arFilePath
         ? `${server_url}/${product.arFilePath.replace(/\\/g, "/")}`
         : null;
@@ -152,6 +229,7 @@ const getAllProducts = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
 
 const addInterests = async (req, res) => {
   try {
