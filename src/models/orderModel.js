@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { interest } = require("payu-websdk/wrapper/emi");
 
 const orderSchema = new mongoose.Schema({
   orderId: {
@@ -55,6 +56,14 @@ const orderSchema = new mongoose.Schema({
       }
     },
   ],
+  cashDiscount: {
+    type: Number,
+    default: 0,
+  },
+  interest: {
+    type: Number,
+    default: 0,
+  },
   totalAmount: {
     type: Number,
     required: true,
