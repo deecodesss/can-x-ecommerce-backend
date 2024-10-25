@@ -11,9 +11,9 @@ const userSchema = new mongoose.Schema({
   shopName: { type: String, required: true },
   // shopNumber: { type: String, required: true },
   shopOwnerName: { type: String, required: true },
-  pesticideLicense: { type: String, required: true }, //file
-  securityChecksImage: { type: String, required: true }, //file
-  dealershipForm: { type: String, required: true }, //file
+  pesticideLicense: { type: String, required: false }, //file
+  securityChecksImage: { type: String, required: false }, //file
+  dealershipForm: { type: String, required: false }, //file
   shopAddress: { type: String, required: true },
   gstNumber: { type: String, required: true },
   panNumber: { type: String, required: true },
