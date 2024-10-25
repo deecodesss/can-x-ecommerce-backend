@@ -662,15 +662,14 @@ const getMenu = async (req, res) => {
 const addCategory = async (req, res) => {
   try {
     console.log(req.body);
-    const { fileName, redirectUrl } = req.body;
-    const categoryImage = req.files["categoryImage"][0];
-    const categoryLogo = req.files["categoryLogo"][0];
+    const { fileName, redirectUrl, categoryImageUrl, categoryLogoUrl } = req.body;
 
+    // Create a new category with the provided URLs
     const newCategory = new Category({
       fileName,
       redirectUrl,
-      imageFilePath: categoryImage.path,
-      logoFilePath: categoryLogo.path,
+      imageFilePath: categoryImageUrl, // Store image URL instead of file path
+      logoFilePath: categoryLogoUrl,   // Store logo URL instead of file path
     });
 
     const savedCategory = await newCategory.save();
@@ -684,6 +683,33 @@ const addCategory = async (req, res) => {
     res.status(500).json({ message: "Internal Server Error" });
   }
 };
+
+
+// const addCategory = async (req, res) => {
+//   try {
+//     console.log(req.body);
+//     const { fileName, redirectUrl } = req.body;
+//     const categoryImage = req.files["categoryImage"][0];
+//     const categoryLogo = req.files["categoryLogo"][0];
+
+//     const newCategory = new Category({
+//       fileName,
+//       redirectUrl,
+//       imageFilePath: categoryImage.path,
+//       logoFilePath: categoryLogo.path,
+//     });
+
+//     const savedCategory = await newCategory.save();
+
+//     res.status(201).json({
+//       message: "Category added successfully",
+//       category: savedCategory,
+//     });
+//   } catch (error) {
+//     console.error("Error adding category:", error);
+//     res.status(500).json({ message: "Internal Server Error" });
+//   }
+// };
 
 const addSubcategory = async (req, res) => {
   try {
