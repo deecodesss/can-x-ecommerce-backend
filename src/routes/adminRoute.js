@@ -27,6 +27,7 @@ const {
   addSeries,
   deleteBanner,
   deleteBlog,
+  setUserCreditLimit,
 } = require("../controllers/adminControllers");
 const router = express.Router();
 const multer = require("multer");
@@ -217,5 +218,6 @@ router.post("/menu", updateMenu);
 router.put("/updateCustomer", updateUserDetails);
 router.get("/blogs", getAllBlogs);
 router.delete("/blog/:id", deleteBlog);
+router.post('/addCreditLimit/:userId', setUserCreditLimit);
 
 module.exports = router;
