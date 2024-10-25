@@ -319,6 +319,8 @@ const createOrder = async (req, res) => {
       return res.status(400).json({ message: "Cart not found" });
     }
     const totalPayableAmount = cart.payableTotalPrice;
+    const totalDiscounts = cart.products.reduce((acc, product) => acc + product.discount, 0);
+    const totalInterest = cart.products.reduce((acc, product) => acc + product.interest, 0);
 
     if ((user.creditLimit - user.usedCredit) < totalPayableAmount) {
       console.log("Insufficient credit limit:", user.creditLimit, user.usedCredit, totalPayableAmount);
@@ -342,6 +344,8 @@ const createOrder = async (req, res) => {
           price: product.finalPrice,
           dueAmount: orderType === 'credit' ? product.finalPrice : 0,
         })),
+        cashDiscount: totalDiscounts,
+        interest: totalInterest,
         totalAmount: totalPayableAmount,
         amountPaid: orderType === 'credit' ? 0 : totalPayableAmount,
         amountRmaining: orderType === 'credit' ? totalPayableAmount : 0,
