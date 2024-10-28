@@ -10,6 +10,7 @@ const moment = require("moment-timezone");
 const Payment = require("../models/paymentModel");
 const { default: mongoose } = require("mongoose");
 const { interest } = require("payu-websdk/wrapper/emi");
+const Address = require("../models/addressModel");
 const stripe = require("stripe")(process.env.STRIPE_PRIVATE_KEY);
 
 const client_url = process.env.CLIENT_URL;
@@ -112,7 +113,7 @@ const getOrdersForUser = async (req, res) => {
 
     const orders = await Order.find({ customer: userId }).populate(
       "products.product"
-    ).sort({ createdAt: -1 });
+    ).populate("address").sort({ createdAt: -1 });
 
     return res.status(200).json({ orders });
   } catch (error) {
@@ -125,6 +126,7 @@ const getAllOrders = async (req, res) => {
   try {
     const orders = await Order.find()
       .populate("customer")
+      .populate("address")
       .populate("products.product").sort({ createdAt: -1 });
 
     if (!orders || orders.length === 0) {
@@ -308,10 +310,15 @@ const SuccessIPG = async (req, res) => {
 
 const createOrder = async (req, res) => {
   try {
-    const { customer, address, lat, long, orderType } = req.body;
+    const { customer, addressId, lat, long, orderType } = req.body;
     const user = await User.findById(customer);
     if (!user) {
       return res.status(400).json({ message: "Invalid customer ID" });
+    }
+
+    const address = await Address.findById(addressId);
+    if (!address) {
+      return res.status(400).json({ message: "Invalid address" });
     }
 
     const cart = await Cart.findOne({ userId: customer });
@@ -331,7 +338,7 @@ const createOrder = async (req, res) => {
       const order = new Order({
         orderId: generateOrderId(),
         customer: customer,
-        address: address,
+        address: addressId,
         orderType: orderType,
         lat: lat ?? 0,
         long: long ?? 0,
@@ -366,7 +373,10 @@ const createOrder = async (req, res) => {
       user.save();
       await Cart.findByIdAndDelete(cart._id);
 
-      res.status(201).json({ success: true, message: "Ordered successfully!", data: order });
+      const populatedOrder = await Order.findById(order._id).populate('address');
+
+
+      res.status(201).json({ success: true, message: "Ordered successfully!", data: populatedOrder });
     }
   } catch (err) {
     console.error("Error creating order:", err);
