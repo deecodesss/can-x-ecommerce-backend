@@ -60,7 +60,7 @@ router.get("/address/:userId", async (req, res) => {
             return res.status(404).json({ message: "User not found" });
         }
 
-        const addresses = await Address.find({ user: userId });
+        const addresses = await Address.find({ user: userId }).sort({ createdAt: -1 });
 
         if (addresses.length === 0) {
             return res.status(404).json({ message: "No addresses found for this user" });
