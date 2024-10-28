@@ -14,18 +14,6 @@ const orderSchema = new mongoose.Schema({
   orderType: {
     type: String,
   },
-  address: {
-    type: String,
-    required: true
-  },
-  lat: {
-    type: Number,
-    required: false
-  },
-  long: {
-    type: Number,
-    required: false
-  },
   products: [
     {
       product: {
@@ -56,6 +44,11 @@ const orderSchema = new mongoose.Schema({
       }
     },
   ],
+  address: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Address",
+    required: true
+  },
   cashDiscount: {
     type: Number,
     default: 0,
