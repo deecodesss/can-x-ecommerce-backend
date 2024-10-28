@@ -4,6 +4,7 @@ const Product = require("../models/productModel");
 const Coupon = require("../models/couponModel");
 const CashDiscount = require("../models/cashDiscountModel");
 const Interest = require("../models/interestModel");
+const Order = require("../models/orderModel");
 
 const addToCart = async (req, res) => {
   const { userId, productId, quantity, purchaseType, paymentPeriod } = req.body;
@@ -383,6 +384,33 @@ const removeCouponFromCart = async (req, res) => {
   }
 };
 
+const getLastUsedAddress = async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+    const lastOrder = await Order.findOne({ customer: userId })
+      .sort({ createdAt: -1 })
+      .populate("address");
+
+    if (!lastOrder) {
+      return res.status(404).json({ error: "No address found" });
+    }
+    if (!lastOrder.address) {
+      return res.status(404).json({ error: "No address found" });
+    }
+
+    return res.status(200).json({ address: lastOrder.address });
+
+  } catch (error) {
+    console.error("Error fetching last used address:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+}
+
 module.exports = {
   addToCart,
   removeFromCart,
@@ -390,5 +418,6 @@ module.exports = {
   getCart,
   applyCoupon,
   getCoupon,
-  removeCouponFromCart
+  removeCouponFromCart,
+  getLastUsedAddress,
 };
