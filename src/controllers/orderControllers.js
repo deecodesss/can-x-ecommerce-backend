@@ -392,6 +392,7 @@ const addPayment = async (req, res) => {
       customer: customerId,
       order: orderId,
       amount,
+      upiRefNumber: upiRefNumber,
       status: "pending",
       paymentMethod: "UPI",
       createdAt: Date.now(),
@@ -400,12 +401,12 @@ const addPayment = async (req, res) => {
     await payment.save();
 
     order.paymentHistory.push(payment._id);
-    order.paymentStatus = "paymentPending";
+    order.paymentStatus = "pendingPayment";
     await order.save();
 
     res.status(201).json({
       success: true,
-      message: "Payment added successfully!",
+      message: "Your payment has been successfully sent for verification.",
       data: payment,
     });
   } catch (err) {
