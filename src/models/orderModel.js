@@ -1,5 +1,4 @@
 const mongoose = require("mongoose");
-const { interest } = require("payu-websdk/wrapper/emi");
 
 const orderSchema = new mongoose.Schema({
   orderId: {
@@ -12,7 +11,8 @@ const orderSchema = new mongoose.Schema({
     required: true,
   },
   orderType: {
-    type: String,
+    type: String, // e.g., "cash" or "credit"
+    required: true,
   },
   products: [
     {
@@ -65,11 +65,19 @@ const orderSchema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
-  amountRmaining: {
+  amountRemaining: {
     type: Number,
-    default: 0,
+    default: function () {
+      return this.totalAmount - this.amountPaid;
+    },
   },
-  status: {
+  paymentHistory: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Payment",
+    },
+  ],
+  orderStatus: {
     type: String,
     enum: [
       "orderReceived",
@@ -80,11 +88,17 @@ const orderSchema = new mongoose.Schema({
     ],
     default: "orderReceived",
   },
-  payment: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Payment",
-    default: null,
+  paymentStatus: {
+    type: String,
+    enum: [
+      "pendingPayment",
+      "pendingApproval",
+      "paymentApproved",
+      "paidInFull",
+    ],
+    default: "pendingPayment",
   },
+
   createdAt: {
     type: Date,
     default: Date.now,
