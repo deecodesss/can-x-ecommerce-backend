@@ -534,8 +534,8 @@ const handlePaymentStatus = async (req, res) => {
 
 const getAllPayments = async (req, res) => {
   try {
-    const { userId } = req.params;
-    const payments = await Payment.find({ customer: userId }).sort({ createdAt: -1 });
+
+    const payments = await Payment.find().sort({ createdAt: -1 });
 
     console.log("All payments:", payments);
     res
