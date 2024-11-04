@@ -402,7 +402,7 @@ const addPayment = async (req, res) => {
 
     order.paymentHistory.push(payment._id);
     order.paymentStatus = "pendingPayment";
-    payment.populate('order');
+    // payment.populate('order');
     await order.save();
 
     res.status(201).json({
