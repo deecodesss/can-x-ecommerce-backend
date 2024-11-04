@@ -1,5 +1,4 @@
 const mongoose = require("mongoose");
-const { required } = require("nodemon/lib/config");
 
 const paymentSchema = new mongoose.Schema({
   paymentId: {
@@ -10,11 +9,11 @@ const paymentSchema = new mongoose.Schema({
   customer: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
-    required: true
+    required: true,
   },
   order: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "Order",
+    ref: "Order", // Keep this field for admin tracking and relationship to orders
     required: true,
   },
   amount: {
@@ -24,12 +23,24 @@ const paymentSchema = new mongoose.Schema({
   status: {
     type: String,
     required: true,
+    enum: ["pending", "approved", "rejected", "failed"], // Added status options for payment management
   },
   paymentMethod: {
     type: String,
     required: true,
   },
+  upiRefNumber: { // Field for storing UPI reference number
+    type: String,
+  },
+  approved: {
+    type: Boolean,
+    default: false,
+  },
   createdAt: {
+    type: Date,
+    default: Date.now,
+  },
+  updatedAt: {
     type: Date,
     default: Date.now,
   },

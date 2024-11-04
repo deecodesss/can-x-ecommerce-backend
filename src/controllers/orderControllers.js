@@ -113,7 +113,7 @@ const getOrdersForUser = async (req, res) => {
 
     const orders = await Order.find({ customer: userId }).populate(
       "products.product"
-    ).populate("address").sort({ createdAt: -1 });
+    ).populate("address").populate("paymentHistory").sort({ createdAt: -1 });
 
     return res.status(200).json({ orders });
   } catch (error) {
@@ -127,7 +127,7 @@ const getAllOrders = async (req, res) => {
     const orders = await Order.find()
       .populate("customer")
       .populate("address")
-      .populate("products.product").sort({ createdAt: -1 });
+      .populate("products.product").populate("paymentHistory").sort({ createdAt: -1 });
 
     if (!orders || orders.length === 0) {
       return res.status(404).json({ error: "No orders found" });
@@ -310,7 +310,7 @@ const SuccessIPG = async (req, res) => {
 
 const createOrder = async (req, res) => {
   try {
-    const { customer, addressId, lat, long, orderType } = req.body;
+    const { customer, addressId, lat, long, orderType, orderStatus } = req.body;
     const user = await User.findById(customer);
     if (!user) {
       return res.status(400).json({ message: "Invalid customer ID" });
@@ -325,6 +325,7 @@ const createOrder = async (req, res) => {
     if (!cart) {
       return res.status(400).json({ message: "Cart not found" });
     }
+
     const totalPayableAmount = cart.payableTotalPrice;
     const totalDiscounts = cart.products.reduce((acc, product) => acc + product.discount, 0);
     const totalInterest = cart.products.reduce((acc, product) => acc + product.interest, 0);
@@ -351,30 +352,20 @@ const createOrder = async (req, res) => {
           price: product.finalPrice,
           dueAmount: orderType === 'credit' ? product.finalPrice : 0,
         })),
+        orderStatus: orderStatus,
         cashDiscount: totalDiscounts,
         interest: totalInterest,
         totalAmount: totalPayableAmount,
         amountPaid: orderType === 'credit' ? 0 : totalPayableAmount,
-        amountRmaining: orderType === 'credit' ? totalPayableAmount : 0,
+        amountRemaining: orderType === 'credit' ? totalPayableAmount : 0,
       });
+
       await order.save();
-      const payment = new Payment({
-        paymentId: generateRandomString(),
-        customer: customer,
-        order: order._id,
-        amount: totalPayableAmount,
-        status: "pending",
-        paymentMethod: "phonepe",
-      })
-      payment.save();
-      order.payment = payment._id;
-      order.save();
       user.usedCredit += totalPayableAmount;
-      user.save();
-      await Cart.findByIdAndDelete(cart._id);
+      await user.save(); // Ensure to save the user after updating used credit
+      await Cart.findByIdAndDelete(cart._id); // Clear the user's cart after placing the order
 
       const populatedOrder = await Order.findById(order._id).populate('address');
-
 
       res.status(201).json({ success: true, message: "Ordered successfully!", data: populatedOrder });
     }
@@ -383,6 +374,94 @@ const createOrder = async (req, res) => {
     res.status(500).json({ error: "Failed to create order" });
   }
 };
+
+const addPayment = async (req, res) => {
+  try {
+    const { customerId, orderId, amount, upiRefNumber } = req.body;
+    if (!customerId || !orderId || !amount || !upiRefNumber) {
+      return res.status(400).json({ message: "All fields are required." });
+    }
+
+    const order = await Order.findById(orderId);
+    if (!order) {
+      return res.status(404).json({ message: "Order not found." });
+    }
+
+    const payment = new Payment({
+      paymentId: generateRandomString(),
+      customer: customerId,
+      order: orderId,
+      amount,
+      status: "pending",
+      paymentMethod: "UPI",
+      createdAt: Date.now(),
+    });
+
+    await payment.save();
+
+    order.paymentHistory.push(payment._id);
+    order.paymentStatus = "paymentPending";
+    await order.save();
+
+    res.status(201).json({
+      success: true,
+      message: "Payment added successfully!",
+      data: payment,
+    });
+  } catch (err) {
+    console.error("Error adding payment:", err);
+    res.status(500).json({ error: "Failed to add payment." });
+  }
+};
+
+const approvePaymentByAdmin = async (req, res) => {
+  try {
+    const { paymentId } = req.body;
+
+    const payment = await Payment.findById(paymentId);
+    if (!payment) {
+      return res.status(404).json({ message: "Payment not found." });
+    }
+    payment.approved = true;
+    payment.status = "approved";
+    payment.updatedAt = Date.now();
+    payment.save();
+
+    const order = await Order.findById(payment.order);
+    order.paymentStatus = "paymentApproved";
+    order.amountPaid += payment.amount;
+    order.amountRemaining = order.totalAmount - order.amountPaid;
+    order.orderStatus = "inProgress";
+    order.save();
+
+    res.status(200).json({ message: "Payment approved successfully." });
+
+  } catch (err) {
+    console.error("Error approving payment:", err);
+    res.status(500).json({ error: "Failed to approve payment." });
+  }
+}
+
+const rejectPaymentByAdmin = async (req, res) => {
+  try {
+    const { paymentId } = req.body;
+
+    const payment = await Payment.findById(paymentId);
+    if (!payment) {
+      return res.status(404).json({ message: "Payment not found." });
+    }
+    payment.approved = false;
+    payment.status = "rejected";
+    payment.updatedAt = Date.now();
+    payment.save();
+
+    res.status(200).json({ message: "Payment rejected successfully." });
+
+  } catch (err) {
+    console.error("Error rejecting payment:", err);
+    res.status(500).json({ error: "Failed to reject payment." });
+  }
+}
 
 const IPGPaymentOrder = async (req, res) => {
   try {
@@ -500,7 +579,10 @@ const getAllOrderedProductsByUser = async (req, res) => {
 };
 
 module.exports = {
+  addPayment,
   createOrder,
+  approvePaymentByAdmin,
+  rejectPaymentByAdmin,
   stripePayment,
   getOrdersForUser,
   getAllOrders,
