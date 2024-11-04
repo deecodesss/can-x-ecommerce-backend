@@ -356,8 +356,8 @@ const createOrder = async (req, res) => {
         cashDiscount: totalDiscounts,
         interest: totalInterest,
         totalAmount: totalPayableAmount,
-        amountPaid: orderType === 'credit' ? 0 : totalPayableAmount,
-        amountRemaining: orderType === 'credit' ? totalPayableAmount : 0,
+        amountPaid: orderType === 'credit' || orderType === 'partial' ? 0 : totalPayableAmount,
+        amountRemaining: orderType === 'credit' || orderType === 'partial' ? totalPayableAmount : 0
       });
 
       await order.save();
@@ -402,12 +402,14 @@ const addPayment = async (req, res) => {
 
     order.paymentHistory.push(payment._id);
     order.paymentStatus = "pendingPayment";
+    payment.populate('order');
     await order.save();
 
     res.status(201).json({
       success: true,
       message: "Your payment has been successfully sent for verification.",
       data: payment,
+      id: payment._id,
     });
   } catch (err) {
     console.error("Error adding payment:", err);
@@ -423,19 +425,23 @@ const approvePaymentByAdmin = async (req, res) => {
     if (!payment) {
       return res.status(404).json({ message: "Payment not found." });
     }
-    payment.approved = true;
-    payment.status = "approved";
-    payment.updatedAt = Date.now();
-    payment.save();
+    if (payment.approved != true) {
+      payment.approved = true;
+      payment.status = "approved";
+      payment.updatedAt = Date.now();
+      payment.save();
 
-    const order = await Order.findById(payment.order);
-    order.paymentStatus = "paymentApproved";
-    order.amountPaid += payment.amount;
-    order.amountRemaining = order.totalAmount - order.amountPaid;
-    order.orderStatus = "inProgress";
-    order.save();
+      const order = await Order.findById(payment.order);
+      order.paymentStatus = "paymentApproved";
+      order.amountPaid += payment.amount;
+      order.amountRemaining -= payment.amount;
+      order.orderStatus = "inProgress";
+      order.save();
 
-    res.status(200).json({ message: "Payment approved successfully." });
+      res.status(200).json({ message: "Payment approved successfully." });
+    } else {
+      res.status(501).json({ message: "Payment already approved." });
+    }
 
   } catch (err) {
     console.error("Error approving payment:", err);
