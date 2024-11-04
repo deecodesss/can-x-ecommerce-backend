@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { required } = require("nodemon/lib/config");
 
 const paymentSchema = new mongoose.Schema({
   paymentId: {
@@ -31,6 +32,7 @@ const paymentSchema = new mongoose.Schema({
   },
   upiRefNumber: { // Field for storing UPI reference number
     type: String,
+    required: true,
   },
   approved: {
     type: Boolean,
