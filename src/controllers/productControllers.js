@@ -165,7 +165,8 @@ const getAllProducts = async (req, res) => {
       ? {
         $or: [
           { title: { $regex: new RegExp(query, 'i') } },
-          { description: { $regex: new RegExp(query, 'i') } }
+          { description: { $regex: new RegExp(query, 'i') } },
+          { mainCategory: { $regex: new RegExp(query, 'i') } },
         ]
       }
       : {};
