@@ -155,13 +155,25 @@ const getProduct = async (req, res) => {
 
 const getAllProducts = async (req, res) => {
   try {
-    // Get category from query parameters and convert it to lowercase
-    const { category } = req.query;
+    const { category, query } = req.query;
 
     // Construct the filter for category with case-insensitive matching
-    const filter = category ? { mainCategory: { $regex: new RegExp(category.toLowerCase(), 'i') } } : {};
+    const categoryFilter = category ? { mainCategory: { $regex: new RegExp(category, 'i') } } : {};
 
-    // Fetch products based on the filter
+    // Construct the filter for search query in product name or description
+    const searchFilter = query
+      ? {
+        $or: [
+          { title: { $regex: new RegExp(query, 'i') } },
+          { description: { $regex: new RegExp(query, 'i') } }
+        ]
+      }
+      : {};
+
+    // Combine both filters
+    const filter = { ...categoryFilter, ...searchFilter };
+
+    // Fetch products based on the combined filter
     const products = await Product.find(filter).lean();
     const productIds = products.map((product) => product._id);
 
@@ -180,9 +192,7 @@ const getAllProducts = async (req, res) => {
       const mainImageURL = product.mainImage ? `${server_url}/${product.mainImage.replace(/\\/g, "/")}` : null;
 
       const additionalImagesURLs = product.additionalImages
-        ? product.additionalImages.map((image) => {
-          return `${server_url}/${image.replace(/\\/g, "/")}`;
-        })
+        ? product.additionalImages.map((image) => `${server_url}/${image.replace(/\\/g, "/")}`)
         : [];
 
       const attributeImagesURLs = product.attributes.map((attribute) => {
