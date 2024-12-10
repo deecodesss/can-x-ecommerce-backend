@@ -14,6 +14,7 @@ require("dotenv").config();
 const path = require('path');
 const multer = require("multer");
 const fs = require('fs');
+const { sendOtp } = require("./otplessController");
 
 
 
@@ -489,6 +490,15 @@ router.get("/getUsers", async (req, res) => {
     res.status(200).json(users);
   } catch (error) {
     console.error("Error fetching users:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+});
+
+router.post("/send-otp", async (req, res) => {
+  try {
+    sendOtp(req.body.phoneNumber);
+  } catch (err) {
+    console.error("Error sending OTP:", err);
     res.status(500).json({ message: "Internal Server Error" });
   }
 });

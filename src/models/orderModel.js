@@ -80,13 +80,14 @@ const orderSchema = new mongoose.Schema({
   orderStatus: {
     type: String,
     enum: [
+      "draft",
       "orderReceived",
       "inProgress",
       "qualityCheck",
       "outForDelivery",
       "orderDelivered",
     ],
-    default: "orderReceived",
+    default: "draft",
   },
   paymentStatus: {
     type: String,
