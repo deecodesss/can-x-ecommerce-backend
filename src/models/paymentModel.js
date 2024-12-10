@@ -15,7 +15,7 @@ const paymentSchema = new mongoose.Schema({
   order: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Order", // Keep this field for admin tracking and relationship to orders
-    required: true,
+    // required: true,
   },
   amount: {
     type: Number,

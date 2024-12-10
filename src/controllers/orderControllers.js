@@ -11,6 +11,7 @@ const Payment = require("../models/paymentModel");
 const { default: mongoose } = require("mongoose");
 const { interest } = require("payu-websdk/wrapper/emi");
 const Address = require("../models/addressModel");
+const Product = require("../models/productModel");
 const stripe = require("stripe")(process.env.STRIPE_PRIVATE_KEY);
 
 const client_url = process.env.CLIENT_URL;
@@ -307,68 +308,116 @@ const SuccessIPG = async (req, res) => {
   }
 };
 
-
 const createOrder = async (req, res) => {
   try {
-    const { customer, addressId, lat, long, orderType, orderStatus } = req.body;
+    const { customer, addressId, orderType, orderStatus, paymentId } = req.body;
+
+    // Validate the customer
     const user = await User.findById(customer);
     if (!user) {
       return res.status(400).json({ message: "Invalid customer ID" });
     }
 
+    // Validate the address
     const address = await Address.findById(addressId);
     if (!address) {
       return res.status(400).json({ message: "Invalid address" });
     }
 
+    // Validate the cart
     const cart = await Cart.findOne({ userId: customer });
     if (!cart) {
       return res.status(400).json({ message: "Cart not found" });
+    }
+
+    if (orderType !== 'credit' && (paymentId === null || paymentId === undefined || paymentId === '')) {
+      res.status(400).json({ message: "Payment ID is required for cash orders" });
+    }
+
+    // Validate the paymentId if provided
+    let payment = null;
+    if (paymentId) {
+      payment = await Payment.findById(paymentId);
+      if (!payment) {
+        return res.status(400).json({ message: "Invalid payment ID" });
+      }
     }
 
     const totalPayableAmount = cart.payableTotalPrice;
     const totalDiscounts = cart.products.reduce((acc, product) => acc + product.discount, 0);
     const totalInterest = cart.products.reduce((acc, product) => acc + product.interest, 0);
 
-    if ((user.creditLimit - user.usedCredit) < totalPayableAmount) {
+    // Check credit limit for "credit" and "partial" order types
+    if (orderType === "credit" && (user.creditLimit - user.usedCredit) < totalPayableAmount) {
       console.log("Insufficient credit limit:", user.creditLimit, user.usedCredit, totalPayableAmount);
       return res.status(400).json({ message: "Insufficient credit limit" });
-    } else {
-      console.log(" credit limit:", user.creditLimit, user.usedCredit, totalPayableAmount);
-      const now = new Date();
-      const order = new Order({
-        orderId: generateOrderId(),
-        customer: customer,
-        address: addressId,
-        orderType: orderType,
-        lat: lat ?? 0,
-        long: long ?? 0,
-        products: cart.products.map((product) => ({
-          product: product.productId,
-          quantity: product.quantity,
-          cashDiscount: product.discount,
-          interest: product.interest,
-          dueDate: now.setDate(now.getDate() + product.paymentPeriod).toString(),
-          price: product.finalPrice,
-          dueAmount: orderType === 'credit' ? product.finalPrice : 0,
-        })),
-        orderStatus: orderStatus,
-        cashDiscount: totalDiscounts,
-        interest: totalInterest,
-        totalAmount: totalPayableAmount,
-        amountPaid: orderType === 'credit' || orderType === 'partial' ? 0 : totalPayableAmount,
-        amountRemaining: orderType === 'credit' || orderType === 'partial' ? totalPayableAmount : 0
-      });
-
-      await order.save();
-      user.usedCredit += totalPayableAmount;
-      await user.save(); // Ensure to save the user after updating used credit
-      await Cart.findByIdAndDelete(cart._id); // Clear the user's cart after placing the order
-
-      const populatedOrder = await Order.findById(order._id).populate('address');
-
-      res.status(201).json({ success: true, message: "Ordered successfully!", data: populatedOrder });
     }
+
+    if (orderType === "partial") {
+      const creditLimitNeeded = totalPayableAmount * 0.8; // 80% of total
+      if ((user.creditLimit - user.usedCredit) < creditLimitNeeded) {
+        console.log("Insufficient credit limit for partial order:", user.creditLimit, user.usedCredit, creditLimitNeeded);
+        return res.status(400).json({ message: "Insufficient credit limit for partial order" });
+      }
+    }
+
+    // Define the initial order and payment statuses
+    let initialOrderStatus = "draft";
+    let initialPaymentStatus = "pendingApproval";
+
+    if (orderType === "credit") {
+      initialOrderStatus = "orderReceived";
+      initialPaymentStatus = "pendingPayment";
+    }
+
+    // Create the order
+    console.log("Credit limit check passed:", user.creditLimit, user.usedCredit, totalPayableAmount);
+    const now = new Date();
+    const order = new Order({
+      orderId: generateOrderId(),
+      customer,
+      address: addressId,
+      orderType,
+      products: cart.products.map((product) => ({
+        product: product.productId,
+        quantity: product.quantity,
+        cashDiscount: product.discount,
+        interest: product.interest,
+        dueDate: now.setDate(now.getDate() + product.paymentPeriod).toString(),
+        price: product.finalPrice,
+        dueAmount: orderType === "credit" ? product.finalPrice : 0,
+      })),
+      orderStatus: initialOrderStatus,
+      paymentStatus: initialPaymentStatus,
+      cashDiscount: totalDiscounts,
+      interest: totalInterest,
+      totalAmount: totalPayableAmount,
+      amountPaid: orderType === "credit" || orderType === "partial" ? 0 : totalPayableAmount,
+      amountRemaining: orderType === "credit" || orderType === "partial" ? totalPayableAmount : 0,
+      paymentHistory: payment ? [payment._id] : [],
+    });
+
+    // Save the order
+    await order.save();
+
+    if (payment) {
+      payment.order = order._id;
+      await payment.save();
+    }
+
+    // Update user credit if applicable
+    if (orderType === "credit" || orderType === "partial") {
+      user.usedCredit += totalPayableAmount;
+      await user.save();
+    }
+
+    // Clear the user's cart after placing the order
+    await Cart.findByIdAndDelete(cart._id);
+
+    // Populate and send the response
+    const populatedOrder = await Order.findById(order._id).populate("address paymentHistory");
+    res.status(201).json({ success: true, message: "Ordered successfully!", data: populatedOrder });
+
   } catch (err) {
     console.error("Error creating order:", err);
     res.status(500).json({ error: "Failed to create order" });
@@ -377,16 +426,10 @@ const createOrder = async (req, res) => {
 
 const addPayment = async (req, res) => {
   try {
-    const { customerId, orderId, amount, upiRefNumber } = req.body;
-    if (!customerId || !orderId || !amount || !upiRefNumber) {
+    const { customerId, amount, upiRefNumber, orderId } = req.body;
+    if (!customerId || !amount || !upiRefNumber) {
       return res.status(400).json({ message: "All fields are required." });
     }
-
-    const order = await Order.findById(orderId);
-    if (!order) {
-      return res.status(404).json({ message: "Order not found." });
-    }
-
     const payment = new Payment({
       paymentId: generateRandomString(),
       customer: customerId,
@@ -400,10 +443,10 @@ const addPayment = async (req, res) => {
 
     await payment.save();
 
-    order.paymentHistory.push(payment._id);
-    order.paymentStatus = "pendingPayment";
+    // order.paymentHistory.push(payment._id);
+    // order.paymentStatus = "pendingPayment";
     // payment.populate('order');
-    await order.save();
+    // await order.save();
 
     res.status(201).json({
       success: true,
@@ -421,33 +464,55 @@ const approvePaymentByAdmin = async (req, res) => {
   try {
     const { paymentId } = req.body;
 
+    // Fetch the payment
     const payment = await Payment.findById(paymentId);
     if (!payment) {
       return res.status(404).json({ message: "Payment not found." });
     }
-    if (payment.approved != true) {
+
+    // Fetch the customer
+    const customer = await User.findById(payment.customer);
+    if (!customer) {
+      return res.status(404).json({ message: "Customer not found." });
+    }
+
+    // Approve payment if not already approved
+    if (payment.approved !== true) {
       payment.approved = true;
       payment.status = "approved";
       payment.updatedAt = Date.now();
-      payment.save();
+      await payment.save();
 
+      // Fetch the order associated with the payment
       const order = await Order.findById(payment.order);
+      if (!order) {
+        return res.status(404).json({ message: "Order not found." });
+      }
+
+      // Update order details
       order.paymentStatus = "paymentApproved";
       order.amountPaid += payment.amount;
       order.amountRemaining -= payment.amount;
       order.orderStatus = "inProgress";
-      order.save();
+      if (order.paymentHistory.includes(payment._id) === false) {
+        order.paymentHistory.push(payment._id);
+      }
+      await order.save();
+
+      // Update customer details
+      customer.totalSpent += payment.amount;
+      await customer.save();
 
       res.status(200).json({ message: "Payment approved successfully." });
     } else {
-      res.status(501).json({ message: "Payment already approved." });
+      res.status(409).json({ message: "Payment already approved." });
     }
 
   } catch (err) {
     console.error("Error approving payment:", err);
     res.status(500).json({ error: "Failed to approve payment." });
   }
-}
+};
 
 const rejectPaymentByAdmin = async (req, res) => {
   try {
@@ -539,7 +604,22 @@ const getAllPayments = async (req, res) => {
 
     console.log("All payments:", payments);
     res
-      .status(201)
+      .status(200)
+      .json({ message: "Payments fetched successfully", payments });
+  } catch (error) {
+    console.error("Error fetching payments:", error);
+    res.status(500).json({ error: "Failed to fetch payments" });
+  }
+};
+
+const getPaymentsOfOneUser = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const payments = await Payment.find({ customer: userId }).sort({ createdAt: -1 });
+
+    console.log("All payments:", payments);
+    res
+      .status(200)
       .json({ message: "Payments fetched successfully", payments });
   } catch (error) {
     console.error("Error fetching payments:", error);
@@ -585,6 +665,68 @@ const getAllOrderedProductsByUser = async (req, res) => {
   }
 };
 
+const getTotalPurchasesByAllCategories = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const products = await Product.find();
+    const categories = [...new Set(products.flatMap(product => product.mainCategory))]; // Get unique categories
+
+    // Initialize an empty array to hold the results
+    const categoryTotals = [];
+
+    for (const category of categories) {
+      // Find all products in this category
+      const productsInCategory = await Product.find({
+        mainCategory: { $in: [category] },
+      });
+
+      const productIds = productsInCategory.map(product => product._id);
+
+      // Aggregate orders to calculate the total amount for this category
+      const orders = await Order.aggregate([
+        {
+          $match: {
+            customer: new mongoose.Types.ObjectId(userId), // Match orders for the specified user
+            "products.product": { $in: productIds }, // Match products in the specified category
+          },
+        },
+        {
+          $unwind: "$products", // Unwind the products array to process each product individually
+        },
+        {
+          $match: {
+            "products.product": { $in: productIds }, // Filter products in the specified category
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            totalAmount: { $sum: "$products.price" }, // Sum up the total amount spent on the selected category
+          },
+        },
+      ]);
+
+      // Push the result in the array with category as value
+      categoryTotals.push({
+        category: category,
+        totalAmount: orders.length > 0 ? orders[0].totalAmount : 0,
+      });
+    }
+
+    // Return the totals for all categories as an API response
+    return res.json({
+      success: true,
+      data: categoryTotals,
+    });
+  } catch (error) {
+    console.error("Error fetching total purchases by all categories:", error);
+    return res.status(500).json({
+      success: false,
+      message: "An error occurred while fetching the data.",
+    });
+  }
+};
 module.exports = {
   addPayment,
   createOrder,
@@ -598,6 +740,8 @@ module.exports = {
   sendOtp,
   verifyOtp,
   getAllPayments,
+  getPaymentsOfOneUser,
   handlePaymentStatus,
   getAllOrderedProductsByUser,
+  getTotalPurchasesByAllCategories,
 };
