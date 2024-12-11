@@ -16,6 +16,7 @@ const {
   addPayment,
   approvePaymentByAdmin,
   rejectPaymentByAdmin,
+  getTotalPurchasesByAllCategories,
 } = require("../controllers/orderControllers");
 const { applyCoupon } = require("../controllers/cartControllers");
 const router = express.Router();
@@ -36,5 +37,7 @@ router.post("/payment/add", addPayment);
 router.post("/payment/approve", approvePaymentByAdmin);
 router.post("/payment/reject", rejectPaymentByAdmin);
 router.get("/products/:userId", getAllOrderedProductsByUser);
+router.get("/category/total-purchase/:userId", getTotalPurchasesByAllCategories);
+
 
 module.exports = router;
