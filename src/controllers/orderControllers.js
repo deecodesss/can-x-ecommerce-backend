@@ -14,6 +14,7 @@ const Address = require("../models/addressModel");
 const Product = require("../models/productModel");
 const stripe = require("stripe")(process.env.STRIPE_PRIVATE_KEY);
 
+
 const client_url = process.env.CLIENT_URL;
 const server_url = process.env.SERVER_URL;
 
@@ -630,6 +631,10 @@ const getPaymentsOfOneUser = async (req, res) => {
 const getAllOrderedProductsByUser = async (req, res) => {
   try {
     const { userId } = req.params;
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
     const orders = await Order.find({ customer: userId })
       .populate("products.product").sort({ createdAt: -1 })
       .exec();
