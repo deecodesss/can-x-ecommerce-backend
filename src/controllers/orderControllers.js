@@ -392,8 +392,8 @@ const createOrder = async (req, res) => {
       cashDiscount: totalDiscounts,
       interest: totalInterest,
       totalAmount: totalPayableAmount,
-      amountPaid: orderType === "credit" || orderType === "partial" ? 0 : totalPayableAmount,
-      amountRemaining: orderType === "credit" || orderType === "partial" ? totalPayableAmount : 0,
+      // amountPaid: orderType === "credit" || orderType === "partial" ? 0 : totalPayableAmount,
+      // amountRemaining: orderType === "credit" || orderType === "partial" ? totalPayableAmount : 0,
       paymentHistory: payment ? [payment._id] : [],
     });
 
