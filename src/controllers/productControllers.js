@@ -671,29 +671,12 @@ const editProduct = async (req, res) => {
     const {
       title,
       description,
-      discounts,
-      discountValue,
       price,
       currency,
-      available,
-      pieces,
-      promotional,
-      editorContent,
-      width,
-      height,
       weight,
-      status,
       sku,
       mainCategory,
-      subCategory,
-      series,
-      tags,
       vendorId,
-      threeDiaLinkHor,
-      threeDiaLinkVer,
-      metaTitle,
-      metaDescription,
-      metaTags,
     } = req.body;
 
     console.log(req.body);
@@ -702,24 +685,7 @@ const editProduct = async (req, res) => {
     const subCategoryArray = subCategory ? subCategory.split(",") : [];
     const seriesArray = series ? series.split(",") : [];
 
-    var attributes;
 
-    if (typeof req.body.attributes === "string") {
-      try {
-        attributes = JSON.parse(req.body.attributes);
-      } catch (error) {
-        console.error("Error parsing attributes:", error);
-        attributes = [];
-      }
-    } else if (Array.isArray(req.body.attributes)) {
-      attributes = JSON.parse(req.body.attributes[1]);
-    } else {
-      console.error(
-        "Unexpected type for attributes:",
-        typeof req.body.attributes
-      );
-      attributes = [];
-    }
 
     // Find the existing product by ID
     let product = await Product.findById(productId);
@@ -762,60 +728,16 @@ const editProduct = async (req, res) => {
         arFilePath = req.files.arFile[0].path;
       }
     }
-
-    const attributeImages =
-      req.files && req.files.attributeImages
-        ? Array.isArray(req.files.attributeImages)
-          ? req.files.attributeImages
-          : [req.files.attributeImages]
-        : [];
-
-    console.log(attributes);
-    const attributeImageMap = {};
-    attributeImages.forEach((file) => {
-      attributeImageMap[file.originalname] = file.path;
-    });
-
     // Update product fields with new values
     product.title = title;
     product.description = description;
-    product.discounts = discounts;
-    discountValue === "null" ? 0 : Number(discountValue);
     product.price = price;
     product.currency = currency;
-    product.available = available === "null" ? null : parseInt(available);
-    product.pieces = pieces === "null" ? null : parseInt(pieces);
-    product.promotional = promotional;
-    product.editorContent = editorContent;
-    product.width = width === "null" ? null : parseInt(width);
-    product.height = height === "null" ? null : parseInt(height);
     product.weight = weight === "null" ? null : parseInt(weight);
-    product.status = status;
     product.sku = sku;
     product.mainCategory = mainCategoryArray;
-    product.subCategory = subCategoryArray;
-    product.series = seriesArray;
-    product.tags = tags;
     product.vendorId = vendorId;
-    product.attributes = attributes.map(({ _id, ...attribute }) => {
-      const foundAttribute = product.attributes.find(
-        (attr) => String(attr._id) === String(_id)
-      );
-      return {
-        ...attribute,
-        attributeImage:
-          attributeImageMap[attribute.attributeImage] ||
-          foundAttribute?.attributeImage ||
-          attribute.attributeImage ||
-          null,
-      };
-    });
-    product.threeDiaLinkHor = threeDiaLinkHor;
-    product.threeDiaLinkVer = threeDiaLinkVer;
-    product.arFilePath = arFilePath;
-    product.metaTitle = metaTitle;
-    product.metaDescription = metaDescription;
-    product.metaTags = metaTags;
+
 
     // If mainImagePaths array is not empty, update mainImage
     if (mainImagePaths.length > 0) {
