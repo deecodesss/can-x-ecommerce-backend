@@ -175,7 +175,7 @@ const getAllProducts = async (req, res) => {
     const filter = { ...categoryFilter, ...searchFilter };
 
     // Fetch products based on the combined filter
-    const products = await Product.find(filter).lean();
+    const products = await Product.find(filter).lean().sort({ createdAt: -1 });
     const productIds = products.map((product) => product._id);
 
     // Fetch reviews only for the fetched products
