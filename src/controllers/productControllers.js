@@ -682,8 +682,6 @@ const editProduct = async (req, res) => {
     console.log(req.body);
 
     const mainCategoryArray = mainCategory ? mainCategory.split(",") : [];
-    const subCategoryArray = subCategory ? subCategory.split(",") : [];
-    const seriesArray = series ? series.split(",") : [];
 
 
 
