@@ -7,7 +7,7 @@ const Interest = require("../models/interestModel");
 const Order = require("../models/orderModel");
 
 const addToCart = async (req, res) => {
-  const { userId, productId, quantity, purchaseType, paymentPeriod } = req.body;
+  const { userId, productId, quantity, purchaseType, paymentPeriod, variantId } = req.body;
 
   try {
     // Validate the user
@@ -17,6 +17,13 @@ const addToCart = async (req, res) => {
     // Validate the product
     const existingProduct = await Product.findById(productId);
     if (!existingProduct) return res.status(404).json({ message: `Product with ID ${productId} not found` });
+
+    // Get the selected variant if provided
+    let selectedVariant = null;
+    if (variantId) {
+      selectedVariant = existingProduct.variants.find(variant => variant._id.toString() === variantId);
+      if (!selectedVariant) return res.status(404).json({ message: "Variant not found" });
+    }
 
     // Parse the quantity and ensure it's valid
     const parsedQuantity = parseInt(quantity, 10);
@@ -35,9 +42,6 @@ const addToCart = async (req, res) => {
         paymentStart: { $lte: paymentPeriod },
         paymentEnd: { $gte: paymentPeriod }
       });
-      console.log('Cash Discount:', cashDiscount);
-
-
       if (cashDiscount) {
         discountValue = cashDiscount.discount; // Apply the discount percentage
       }
@@ -53,21 +57,21 @@ const addToCart = async (req, res) => {
       interestValue = interest.interest; // Apply the interest percentage
     }
 
-    // Calculate original price
-    const originalPrice = existingProduct.price * parsedQuantity;
+    // Calculate original price (with or without variant)
+    const originalPrice = selectedVariant ? selectedVariant.price * parsedQuantity : existingProduct.price * parsedQuantity;
 
     // Calculate discounted price
     const discountedPrice = originalPrice - (discountValue / 100 * originalPrice); // Apply discount to total
 
-    // Calculate delay based on the payment period defined in cash discount data
+    // Calculate interest for delayed payments
     let totalInterest = 0;
     if (interestValue > 0) {
       const interestStartPeriod = interest.paymentStart; // Assuming this is the start of the interest application
-      const daysDelayed = paymentPeriod - interestStartPeriod; // Calculate how many days the payment is delayed
-      const monthsDelayed = Math.ceil(daysDelayed / 30); // Calculate the number of full months delayed
+      const daysDelayed = paymentPeriod - interestStartPeriod;
+      const monthsDelayed = Math.ceil(daysDelayed / 30);
 
       if (daysDelayed > 0) {
-        totalInterest = (interestValue / 100) * discountedPrice * monthsDelayed; // Calculate total interest for delayed months
+        totalInterest = (interestValue / 100) * discountedPrice * monthsDelayed; // Calculate interest for delayed months
       }
     }
 
@@ -83,6 +87,8 @@ const addToCart = async (req, res) => {
         userId,
         products: [{
           productId,
+          variantId,
+          variant: selectedVariant || null,
           quantity: parsedQuantity,
           discount: discountValue,
           interest: interestValue,
@@ -94,18 +100,20 @@ const addToCart = async (req, res) => {
         cartTotal: originalPrice,
         payableTotalPrice: finalPrice,
         discountsTotal: discountValue > 0 ? originalPrice - discountedPrice : 0,
-        interestsTotal: totalInterest, // Store the total interest applied
+        interestsTotal: totalInterest,
       });
     } else {
       // Check if the product already exists in the cart
-      const existingProductInCart = cart.products.find(item => item.productId.toString() === productId);
+      const existingProductInCart = cart.products.find(item => item.productId.toString() === productId && item.variantId.toString() === variantId);
       if (existingProductInCart) {
-        return res.status(400).json({ message: "Product already exists in cart" });
+        return res.status(400).json({ message: "Product with this variant already exists in cart" });
       }
 
       // Add the new product to the cart
       cart.products.push({
         productId,
+        variantId,
+        variant: selectedVariant || null,
         quantity: parsedQuantity,
         discount: discountValue,
         interest: interestValue,
@@ -116,10 +124,10 @@ const addToCart = async (req, res) => {
       });
 
       // Update the cart totals
-      cart.cartTotal += originalPrice; // Add original price of the new product
-      cart.payableTotalPrice += finalPrice; // Add final price of the new product
-      cart.discountsTotal += discountValue > 0 ? originalPrice - discountedPrice : 0; // Update discounts total
-      cart.interestsTotal += totalInterest; // Update total interest
+      cart.cartTotal += originalPrice;
+      cart.payableTotalPrice += finalPrice;
+      cart.discountsTotal += discountValue > 0 ? originalPrice - discountedPrice : 0;
+      cart.interestsTotal += totalInterest;
     }
 
     // Save the cart
@@ -132,6 +140,7 @@ const addToCart = async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 };
+
 
 const removeFromCart = async (req, res) => {
   const { userId, productId } = req.body;

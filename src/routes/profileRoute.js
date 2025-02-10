@@ -8,7 +8,7 @@ router.get("/:userId", async (req, res) => {
     const userId = req.params.userId;
 
     try {
-        const user = await User.findById(userId);
+        const user = await User.findById(userId).populate("availedScheme");
         if (user) {
             res.status(200).json({
                 success: true,

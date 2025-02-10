@@ -16,6 +16,7 @@ const {
   addPayment,
   approvePaymentByAdmin,
   rejectPaymentByAdmin,
+  getPaymentsOfOneUser,
   getTotalPurchasesByAllCategories,
 } = require("../controllers/orderControllers");
 const { applyCoupon } = require("../controllers/cartControllers");
@@ -25,6 +26,7 @@ router.post("/ipg-payment", IPGPaymentOrder);
 router.post("/successTransaction", SuccessIPG);
 router.post("/stripe-checkout", stripePayment);
 router.get("/getAllPayments", getAllPayments);
+router.get("/getAllPayments/:userId", getPaymentsOfOneUser);
 router.put("/paymentStatus", handlePaymentStatus);
 router.get("/:userId", getOrdersForUser);
 router.get("/", getAllOrders);
@@ -38,6 +40,5 @@ router.post("/payment/approve", approvePaymentByAdmin);
 router.post("/payment/reject", rejectPaymentByAdmin);
 router.get("/products/:userId", getAllOrderedProductsByUser);
 router.get("/category/total-purchase/:userId", getTotalPurchasesByAllCategories);
-
 
 module.exports = router;

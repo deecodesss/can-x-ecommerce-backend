@@ -4,8 +4,8 @@ const categorySchema = new mongoose.Schema({
   name: { type: String },
   fileName: { type: String, required: true },
   redirectUrl: { type: String },
-  imageFilePath: { type: String, required: true },
-  logoFilePath: { type: String, required: true },
+  imageFilePath: { type: String, },
+  logoFilePath: { type: String, },
   subcategories: [
     {
       name: { type: String },

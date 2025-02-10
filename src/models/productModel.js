@@ -1,7 +1,8 @@
 const mongoose = require("mongoose");
+const { required } = require("nodemon/lib/config");
 
 const productSchema = new mongoose.Schema({
-  title: { type: String, required: true },
+  title: { type: String, required: true, unique: true },
   description: { type: String, required: true },
   // cashDiscount: {
   //   type: [
@@ -21,8 +22,8 @@ const productSchema = new mongoose.Schema({
   //   ]
   // },
   discounts: { type: Boolean, default: false },
-  discountValue: { type: Number, default: 0 },
-  price: { type: Number, required: true },
+  discountValue: { type: Number, required: false },
+  // price: { type: Number, required: true },
   currency: { type: String },
   available: { type: Number },
   pieces: { type: Number },
@@ -32,7 +33,7 @@ const productSchema = new mongoose.Schema({
   editorContent: { type: String },
   width: { type: Number },
   height: { type: Number },
-  weight: { type: Number },
+  // weight: { type: Number },
   status: {
     type: String,
     enum: ["available", "outOfStock"],
@@ -70,6 +71,14 @@ const productSchema = new mongoose.Schema({
   metaTitle: { type: String },
   metaDescription: { type: String },
   metaTags: { type: String },
+
+  variants: [
+    {
+      type: { type: String, enum: ['g', 'kg', 'ml', 'litre'], required: true },
+      value: Number, // 100, 500, etc.
+      price: Number, // Price for the variant
+    },
+  ],
 });
 
 const Product = mongoose.model("Product", productSchema);

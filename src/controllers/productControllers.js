@@ -10,6 +10,7 @@ const mongoose = require("mongoose");
 const Material = require("../models/materialModel");
 const cashDiscount = require("../models/cashDiscountModel");
 const Interest = require("../models/interestModel");
+const CashDiscount = require("../models/cashDiscountModel");
 
 const server_url = process.env.SERVER_URL;
 const getProduct = async (req, res) => {
@@ -300,6 +301,37 @@ const getAllCashDiscounts = async (req, res) => {
   }
 };
 
+const deleteCashDiscounts = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const success = await CashDiscount.findByIdAndDelete(id);
+    if (success) {
+      res.status(200).json({ message: "Cash discount deleted successfully" });
+    } else {
+      res.status(404).json({ error: "Cash discount not found" });
+    }
+
+  } catch (error) {
+    console.error("Error deleting cash discounts:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
+const deleteInterest = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const success = await Interest.findByIdAndDelete(id);
+    if (success) {
+      res.status(200).json({ message: "Interest deleted successfully" });
+    } else {
+      res.status(404).json({ error: "Interest not found" });
+    }
+
+  } catch (error) {
+    console.error("Error deleting Interest:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
 const getAllInterests = async (req, res) => {
   try {
     // Fetch all interests from the database
@@ -454,7 +486,7 @@ const createProduct = async (req, res) => {
       description,
       discounts,
       discountValue,
-      price,
+      // price,
       currency,
       available,
       pieces,
@@ -464,7 +496,7 @@ const createProduct = async (req, res) => {
       editorContent,
       width,
       height,
-      weight,
+      // weight,
       status,
       sku,
       mainCategory,
@@ -481,12 +513,13 @@ const createProduct = async (req, res) => {
       isStock,
     } = req.body;
 
+    // Parse mainCategory, subCategory, and series
     const mainCategoryArray = mainCategory ? mainCategory.split(",") : [];
     const subCategoryArray = subCategory ? subCategory.split(",") : [];
     const seriesArray = series ? series.split(",") : [];
 
-    var attributes;
-
+    // Parse attributes
+    let attributes;
     if (typeof req.body.attributes === "string") {
       try {
         attributes = JSON.parse(req.body.attributes);
@@ -495,30 +528,40 @@ const createProduct = async (req, res) => {
         attributes = [];
       }
     } else if (Array.isArray(req.body.attributes)) {
-      attributes = JSON.parse(req.body.attributes[1]);
+      attributes = req.body.attributes;
     } else {
-      console.error(
-        "Unexpected type for attributes:",
-        typeof req.body.attributes
-      );
+      console.error("Unexpected type for attributes:", typeof req.body.attributes);
       attributes = [];
     }
 
+    // Parse variants
+    let variants = [];
+    if (typeof req.body.variants === "string") {
+      try {
+        variants = JSON.parse(req.body.variants);
+      } catch (error) {
+        console.error("Error parsing variants:", error);
+        variants = [];
+      }
+    } else if (Array.isArray(req.body.variants)) {
+      variants = req.body.variants;
+    } else {
+      console.error("Unexpected type for variants:", typeof req.body.variants);
+    }
+
     // Check if required fields are present
-    if (!title || !description || !price || !vendorId) {
+    if (!title || !description || !vendorId) {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
     // Initialize arrays to store image paths
     const mainImagePaths = [];
     const additionalImagePaths = [];
-    var arFilePath;
+    let arFilePath;
 
-    // Check if mainImage and additionalImages are present in the request
+    // Process uploaded files
     if (req.files) {
-      // Process mainImage
       if (req.files.mainImage) {
-        // If mainImage is an array of files
         if (Array.isArray(req.files.mainImage)) {
           req.files.mainImage.forEach((file) => {
             mainImagePaths.push(file.path);
@@ -528,9 +571,7 @@ const createProduct = async (req, res) => {
         }
       }
 
-      // Process additionalImages
       if (req.files.additionalImages) {
-        // If additionalImages is an array of files
         if (Array.isArray(req.files.additionalImages)) {
           req.files.additionalImages.forEach((file) => {
             additionalImagePaths.push(file.path);
@@ -539,11 +580,13 @@ const createProduct = async (req, res) => {
           additionalImagePaths.push(req.files.additionalImages.path);
         }
       }
+
       if (req.files.arFile) {
         arFilePath = req.files.arFile[0].path;
       }
     }
 
+    // Handle attribute images
     const attributeImages =
       req.files && req.files.attributeImages
         ? Array.isArray(req.files.attributeImages)
@@ -551,12 +594,10 @@ const createProduct = async (req, res) => {
           : [req.files.attributeImages]
         : [];
 
-    console.log(attributes);
     const attributeImageMap = {};
     attributeImages.forEach((file) => {
       attributeImageMap[file.originalname] = file.path;
     });
-
 
     // Create a new Product object
     const newProduct = new Product({
@@ -564,7 +605,7 @@ const createProduct = async (req, res) => {
       description,
       discounts,
       discountValue,
-      price,
+      // price,
       currency,
       available,
       pieces,
@@ -574,7 +615,7 @@ const createProduct = async (req, res) => {
       editorContent,
       width,
       height,
-      weight,
+      // weight,
       status,
       sku,
       mainImage: mainImagePaths[0],
@@ -590,6 +631,7 @@ const createProduct = async (req, res) => {
           attributeImageMap[attribute.attributeImage] ||
           attribute.attributeImage,
       })),
+      variants, // Add variants to the product object
       threeDiaLinkHor,
       threeDiaLinkVer,
       arFilePath,
@@ -600,11 +642,12 @@ const createProduct = async (req, res) => {
       isStock,
     });
 
+    // Save product to database
     const savedProduct = await newProduct.save();
 
+    // Send email to vendor if vendorId is valid
     if (vendorId) {
       const vendor = await User.findById(vendorId);
-      console.log(vendor);
       if (vendor && vendor.role === "vendor") {
         const subject = "Product Creation Notification";
         const message = `
@@ -654,109 +697,210 @@ const createProduct = async (req, res) => {
         await sendEmail(vendor.name, vendor.email, subject, message);
       }
     }
+
     // Respond with the saved product
     res.status(201).json(savedProduct);
   } catch (error) {
-    // Handle error
-    console.log(error.message);
+    console.error("Error in createProduct:", error.message);
     res.status(500).json({ error: error.message });
   }
 };
 
+
 const editProduct = async (req, res) => {
   try {
-    // Extract product information from request body
     const productId = req.params.productId;
-    console.log(productId);
     const {
       title,
       description,
-      price,
+      discounts,
+      discountValue,
+      // price,
       currency,
-      weight,
+      available,
+      minQuantity,
+      quantityIncrement,
+      promotional,
+      editorContent,
+      // weight,
+      status,
       sku,
       mainCategory,
+      subCategory,
+      series,
+      tags,
       vendorId,
+      threeDiaLinkHor,
+      threeDiaLinkVer,
+      metaTitle,
+      metaDescription,
+      metaTags,
+      variants
     } = req.body;
 
-    console.log(req.body);
-
-    const mainCategoryArray = mainCategory ? mainCategory.split(",") : [];
-
-
-
-    // Find the existing product by ID
+    // Find the product
     let product = await Product.findById(productId);
-
     if (!product) {
       return res.status(404).json({ error: "Product not found" });
     }
 
-    // Initialize arrays to store image paths
-    const mainImagePaths = [];
-    const additionalImagePaths = [];
-    var arFilePath;
+    // Parse variants
+    let parsedVariants = [];
+    if (variants) {
+      try {
+        parsedVariants = typeof variants === 'string' ? JSON.parse(variants) : variants;
+        // Validate variant structure
+        if (!Array.isArray(parsedVariants)) {
+          throw new Error('Variants must be an array');
+        }
+        // Validate each variant
+        parsedVariants.forEach(variant => {
+          if (!variant.type || !variant.value || !variant.price) {
+            throw new Error('Each variant must have type, value, and price');
+          }
+        });
+      } catch (error) {
+        console.error("Error parsing variants:", error);
+        return res.status(400).json({ error: "Invalid variants format" });
+      }
+    }
 
-    // Check if mainImage and additionalImages are present in the request
+    // Handle categories
+    const mainCategoryArray = mainCategory ? 
+      (typeof mainCategory === 'string' ? mainCategory.split(',') : mainCategory) : 
+      product.mainCategory;
+
+    const subCategoryArray = subCategory ? 
+      (typeof subCategory === 'string' ? subCategory.split(',') : subCategory) : 
+      product.subCategory;
+
+    const seriesArray = series ? 
+      (typeof series === 'string' ? series.split(',') : series) : 
+      product.series;
+
+    // Handle image paths
+    let mainImagePath = product.mainImage; // Keep existing main image by default
+    let additionalImagePaths = [...(product.additionalImages || [])]; // Clone existing additional images
+
     if (req.files) {
-      // Process mainImage
+      // Handle main image
       if (req.files.mainImage) {
-        // If mainImage is an array of files
-        if (Array.isArray(req.files.mainImage)) {
-          req.files.mainImage.forEach((file) => {
-            mainImagePaths.push(file.path);
-          });
-        } else {
-          mainImagePaths.push(req.files.mainImage.path);
-        }
+        const mainImageFile = Array.isArray(req.files.mainImage) 
+          ? req.files.mainImage[0] 
+          : req.files.mainImage;
+        mainImagePath = mainImageFile.path;
       }
 
-      // Process additionalImages
+      // Handle additional images
       if (req.files.additionalImages) {
-        // If additionalImages is an array of files
-        if (Array.isArray(req.files.additionalImages)) {
-          req.files.additionalImages.forEach((file) => {
-            additionalImagePaths.push(file.path);
-          });
-        } else {
-          additionalImagePaths.push(req.files.additionalImages.path);
-        }
-      }
-      if (req.files.arFile) {
-        arFilePath = req.files.arFile[0].path;
+        const newAdditionalImages = Array.isArray(req.files.additionalImages)
+          ? req.files.additionalImages.map(file => file.path)
+          : [req.files.additionalImages.path];
+
+        // Merge existing and new images, limit to 5
+        additionalImagePaths = [...additionalImagePaths, ...newAdditionalImages].slice(0, 5);
       }
     }
-    // Update product fields with new values
-    product.title = title;
-    product.description = description;
-    product.price = price;
-    product.currency = currency;
-    product.weight = weight === "null" ? null : parseInt(weight);
-    product.sku = sku;
-    product.mainCategory = mainCategoryArray;
-    product.vendorId = vendorId;
 
+    // Update product with new values, falling back to existing values
+    const updatedProduct = {
+      title: title || product.title,
+      description: description || product.description,
+      discounts: discounts || product.discounts,
+      discountValue: discountValue === undefined ? product.discountValue : Number(discountValue),
+      // price: price || product.price,
+      currency: currency || product.currency,
+      available: available === undefined ? product.available : Number(available),
+      minQuantity: minQuantity === undefined ? product.minQuantity : Number(minQuantity),
+      quantityIncrement: quantityIncrement === undefined ? product.quantityIncrement : Number(quantityIncrement),
+      promotional: promotional || product.promotional,
+      editorContent: editorContent || product.editorContent,
+      // weight: weight === undefined ? product.weight : Number(weight),
+      status: status || product.status,
+      sku: sku || product.sku,
+      mainImage: mainImagePath,
+      additionalImages: additionalImagePaths,
+      mainCategory: mainCategoryArray,
+      subCategory: subCategoryArray,
+      series: seriesArray,
+      tags: tags || product.tags,
+      vendorId: vendorId || product.vendorId,
+      variants: parsedVariants.length > 0 ? parsedVariants : product.variants,
+      threeDiaLinkHor: threeDiaLinkHor || product.threeDiaLinkHor,
+      threeDiaLinkVer: threeDiaLinkVer || product.threeDiaLinkVer,
+      metaTitle: metaTitle || product.metaTitle,
+      metaDescription: metaDescription || product.metaDescription,
+      metaTags: metaTags || product.metaTags
+    };
 
-    // If mainImagePaths array is not empty, update mainImage
-    if (mainImagePaths.length > 0) {
-      product.mainImage = mainImagePaths[0];
+    // Update the product
+    const savedProduct = await Product.findByIdAndUpdate(
+      productId,
+      { $set: updatedProduct },
+      { new: true, runValidators: true }
+    );
+
+    // Notify vendor about the update
+    if (savedProduct.vendorId) {
+      const vendor = await User.findById(savedProduct.vendorId);
+      if (vendor && vendor.role === "vendor") {
+        const subject = "Product Update Notification";
+        const message = `
+          <html>
+            <head>
+              <style>
+                body {
+                  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                  font-size: 16px;
+                  line-height: 1.6;
+                  color: #333;
+                  background-color: #f9f9f9;
+                  margin: 0;
+                  padding: 0;
+                }
+                .container {
+                  margin: 20px auto;
+                  padding: 20px;
+                  background-color: #ffffff;
+                  border-radius: 10px;
+                  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+                  max-width: 600px;
+                }
+                h2 {
+                  color: #333;
+                  margin-top: 0;
+                }
+                p {
+                  margin: 10px 0;
+                  font-size: 16px;
+                }
+                a {
+                  color: #007bff;
+                  text-decoration: none;
+                }
+              </style>
+            </head>
+            <body>
+              <div class="container">
+                <h2>Dear ${vendor.name},</h2>
+                <p>Your product "${savedProduct.title}" has been updated successfully.</p>
+                <p>The changes have been saved and are now live on the platform.</p>
+                <p>Thank you for keeping your product information up to date.</p>
+              </div>
+            </body>
+          </html>
+        `;
+        await sendEmail(vendor.name, vendor.email, subject, message);
+      }
     }
 
-    // If additionalImagePaths array is not empty, update additionalImages
-    if (additionalImagePaths.length > 0) {
-      product.additionalImages = additionalImagePaths;
-    }
-
-    // Save the updated product
-    const savedProduct = await product.save();
-
-    // Respond with the updated product
     res.status(200).json(savedProduct);
   } catch (error) {
     console.error("Error in editProduct:", error);
     res.status(500).json({ error: error.message });
   }
 };
+
 
 const deleteProduct = async (req, res) => {
   try {
@@ -1059,10 +1203,33 @@ const exportCSV = async (req, res) => {
   }
 };
 
+// Controller to get all variants of a specific product
+const getProductVariants = async (req, res) => {
+  const { productId } = req.params; // Get the productId from the request params
+
+  try {
+    // Find the product by productId and populate the variants field
+    const product = await Product.findById(productId);
+
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+
+    // Send the product's variants in the response
+    res.status(200).json({ variants: product.variants });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+
 module.exports = {
   createProduct,
   addCashDiscounts,
   updateCashDiscount,
+  deleteCashDiscounts,
+  deleteInterest,
   getAllCashDiscounts,
   addInterests,
   updateInterest,
@@ -1072,6 +1239,7 @@ module.exports = {
   getProduct,
   getAllProducts,
   changeStockStatus,
+  getProductVariants,
   importCSV,
   exportCSV,
 };

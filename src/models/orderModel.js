@@ -34,10 +34,14 @@ const orderSchema = new mongoose.Schema({
         type: Date,
         required: true,
       },
-      price: {
-        type: Number,
-        required: true,
-      },
+      variant: [
+        {
+          _id: mongoose.Schema.Types.ObjectId,
+          type: String,
+          price: Number,
+          value: Number,
+        },
+      ],
       dueAmount: {
         type: Number,
         default: 0,

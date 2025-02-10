@@ -1,4 +1,8 @@
 const express = require("express");
+const fs = require("fs");
+const path = require("path");
+const multer = require("multer");
+
 const {
   approveVendor,
   approveCustomer,
@@ -28,107 +32,65 @@ const {
   deleteBanner,
   deleteBlog,
   setUserCreditLimit,
+  editCategory,
+  deleteCategory,
+  rejectCustomer,
+  updateOrderDetails,
+  getOrderDetails,
 } = require("../controllers/adminControllers");
+
+const { sendEmail } = require("../config/sendEmail");
+
 const router = express.Router();
-const multer = require("multer");
-const path = require("path");
 
-// Multer storage configuration for banners
-const bannerStorage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, "images");
-  },
-  filename: function (req, file, cb) {
-    const originalFilename = file.originalname;
-    const extension = path.extname(originalFilename);
-    const filenameWithoutExtension = originalFilename.replace(extension, "");
-    const bannerFilename = `${filenameWithoutExtension}-banner-${Date.now()}${extension}`;
-    cb(null, bannerFilename);
-  },
-});
+// Helper function to ensure a directory exists
+const ensureDirectoryExists = (directoryPath) => {
+  if (!fs.existsSync(directoryPath)) {
+    fs.mkdirSync(directoryPath, { recursive: true });
+  }
+};
 
-// Multer storage configuration for categories
-const categoryStorage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, "images");
-  },
-  filename: function (req, file, cb) {
-    const originalFilename = file.originalname;
-    const extension = path.extname(originalFilename);
-    const filenameWithoutExtension = originalFilename.replace(extension, "");
-    const categoryFilename = `${filenameWithoutExtension}-category-${Date.now()}${extension}`;
-    cb(null, categoryFilename);
-  },
-});
+// Generalized storage configuration
+const createStorage = (subDirectory) =>
+  multer.diskStorage({
+    destination: function (req, file, cb) {
+      const targetPath = "images/" + subDirectory;
+      ensureDirectoryExists(targetPath); // Ensure directory exists
+      cb(null, targetPath);
+    },
+    filename: function (req, file, cb) {
+      const originalFilename = file.originalname;
+      const extension = path.extname(originalFilename);
+      const filenameWithoutExtension = originalFilename.replace(extension, "");
+      const filename = `${filenameWithoutExtension}-${Date.now()}${extension}`;
+      cb(null, filename);
+    },
+  });
 
-// Multer storage configuration for subcategory logos
-const subcategoryLogoStorage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, "images");
-  },
-  filename: function (req, file, cb) {
-    const originalFilename = file.originalname;
-    const extension = path.extname(originalFilename);
-    const filenameWithoutExtension = originalFilename.replace(extension, "");
-    const logoFilename = `${filenameWithoutExtension}-subcategory-logo-${Date.now()}${extension}`;
-    cb(null, logoFilename);
-  },
-});
+// Multer storage configurations for various uploads
+const bannerStorage = createStorage("");
+const categoryStorage = createStorage("categories");
+const subcategoryLogoStorage = createStorage("subcategories");
+const seriesLogoStorage = createStorage("series");
+const blogImageStorage = createStorage("blogs");
 
-// Multer storage configuration for series logos
-const seriesLogoStorage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, "images");
-  },
-  filename: function (req, file, cb) {
-    const originalFilename = file.originalname;
-    const extension = path.extname(originalFilename);
-    const filenameWithoutExtension = originalFilename.replace(extension, "");
-    const seriesLogoFilename = `${filenameWithoutExtension}-series-logo-${Date.now()}${extension}`;
-    cb(null, seriesLogoFilename);
-  },
-});
-
-// Multer storage configuration for blog images
-const blogImageStorage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, "images");
-  },
-  filename: function (req, file, cb) {
-    const originalFilename = file.originalname;
-    const extension = path.extname(originalFilename);
-    const filenameWithoutExtension = originalFilename.replace(extension, "");
-    const blogImageFilename = `${filenameWithoutExtension}-blog-${Date.now()}${extension}`;
-    cb(null, blogImageFilename);
-  },
-});
-
-// Multer upload configuration for banners
-const bannerUpload = multer({ storage: bannerStorage });
-
-// Multer upload configuration for category images and logos
+// Multer upload configurations
+const bannerUpload = multer({ storage: bannerStorage }).single("banner");
 const categoryUpload = multer({ storage: categoryStorage }).fields([
   { name: "categoryImage", maxCount: 1 },
-  { name: "categoryLogo", maxCount: 1 },
 ]);
-
-// Multer upload configuration for subcategory logos
 const subcategoryLogoUpload = multer({
   storage: subcategoryLogoStorage,
 }).single("subcategoryLogo");
-
-// Multer upload configuration for series logos
-const seriesLogoUpload = multer({ storage: seriesLogoStorage }).single(
-  "seriesLogo"
-);
-
-// Multer upload configuration for blog images
-const blogImageUpload = multer({ storage: blogImageStorage }).single(
-  "blogImage"
-);
+const seriesLogoUpload = multer({
+  storage: seriesLogoStorage,
+}).single("seriesLogo");
+const blogImageUpload = multer({
+  storage: blogImageStorage,
+}).single("blogImage");
 
 // Routes for banners
-router.post("/uploadBanner", bannerUpload.single("banner"), addBanner);
+router.post("/uploadBanner", bannerUpload, addBanner);
 router.delete("/banner/:bannerId", deleteBanner);
 
 // Routes for categories
@@ -147,7 +109,23 @@ router.post(
   },
   addCategory
 );
+router.put(
+  "/category/update",
+  (req, res, next) => {
+    categoryUpload(req, res, (err) => {
+      if (err) {
+        console.log(err);
+        return res
+          .status(400)
+          .json({ error: "Category image/logo upload failed" });
+      }
+      next();
+    });
+  },
+  editCategory
+);
 
+router.delete("/category/delete/:id", deleteCategory);
 // Add a route for adding subcategories
 router.post(
   "/subcategory",
@@ -195,12 +173,23 @@ router.post(
   createBlog
 );
 
+// Additional routes
 router.get("/category", getCategories);
 router.post("/category/select", markSelectedCategories);
+router.post("/send-email", (req, res) => {
+  const { email, subject, message } = req.body;
+  const success = sendEmail(email, subject, message);
+  if (success) {
+    res.status(200).json({ message: "Email sent successfully" });
+  } else {
+    res.status(500).json({ error: "Email sending failed" });
+  }
+});
 
 // Other routes
 router.post("/approveVendor", approveVendor);
 router.post("/approveCustomer", approveCustomer);
+router.post("/rejectCustomer", rejectCustomer);
 router.post("/approveProduct", productApproval);
 router.get("/coupons", getAllCoupons);
 router.post("/createCoupon", createCoupon);
@@ -218,6 +207,8 @@ router.post("/menu", updateMenu);
 router.put("/updateCustomer", updateUserDetails);
 router.get("/blogs", getAllBlogs);
 router.delete("/blog/:id", deleteBlog);
-router.post('/addCreditLimit/:userId', setUserCreditLimit);
+router.post("/addCreditLimit/:userId", setUserCreditLimit);
+router.put('/update/:id', updateOrderDetails);
+router.get('/orders/:id', getOrderDetails);
 
 module.exports = router;
