@@ -38,6 +38,9 @@ const paymentSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  approvedAmount: {
+    type: Number,
+  },
   createdAt: {
     type: Date,
     default: Date.now,

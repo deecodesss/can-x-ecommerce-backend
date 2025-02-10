@@ -14,7 +14,6 @@ const Address = require("../models/addressModel");
 const Product = require("../models/productModel");
 const stripe = require("stripe")(process.env.STRIPE_PRIVATE_KEY);
 
-
 const client_url = process.env.CLIENT_URL;
 const server_url = process.env.SERVER_URL;
 
@@ -332,13 +331,13 @@ const createOrder = async (req, res) => {
     }
 
     if (orderType !== 'credit' && (paymentId === null || paymentId === undefined || paymentId === '')) {
-      res.status(400).json({ message: "Payment ID is required for cash orders" });
+      return res.status(400).json({ message: "Payment ID is required for cash orders" });
     }
 
-    // Validate the paymentId if provided
+    // Validate the paymentId if provided (treat as string)
     let payment = null;
     if (paymentId) {
-      payment = await Payment.findById(paymentId);
+      payment = await Payment.findOne({ paymentId }); // Query using the string paymentId
       if (!payment) {
         return res.status(400).json({ message: "Invalid payment ID" });
       }
@@ -350,14 +349,12 @@ const createOrder = async (req, res) => {
 
     // Check credit limit for "credit" and "partial" order types
     if (orderType === "credit" && (user.creditLimit - user.usedCredit) < totalPayableAmount) {
-      console.log("Insufficient credit limit:", user.creditLimit, user.usedCredit, totalPayableAmount);
       return res.status(400).json({ message: "Insufficient credit limit" });
     }
 
     if (orderType === "partial") {
       const creditLimitNeeded = totalPayableAmount * 0.8; // 80% of total
       if ((user.creditLimit - user.usedCredit) < creditLimitNeeded) {
-        console.log("Insufficient credit limit for partial order:", user.creditLimit, user.usedCredit, creditLimitNeeded);
         return res.status(400).json({ message: "Insufficient credit limit for partial order" });
       }
     }
@@ -372,7 +369,6 @@ const createOrder = async (req, res) => {
     }
 
     // Create the order
-    console.log("Credit limit check passed:", user.creditLimit, user.usedCredit, totalPayableAmount);
     const now = new Date();
     const order = new Order({
       orderId: generateOrderId(),
@@ -382,10 +378,11 @@ const createOrder = async (req, res) => {
       products: cart.products.map((product) => ({
         product: product.productId,
         quantity: product.quantity,
+        variant: product.variant,
         cashDiscount: product.discount,
         interest: product.interest,
         dueDate: now.setDate(now.getDate() + product.paymentPeriod).toString(),
-        price: product.finalPrice,
+        // price: product.finalPrice,
         dueAmount: orderType === "credit" ? product.finalPrice : 0,
       })),
       orderStatus: initialOrderStatus,
@@ -393,9 +390,7 @@ const createOrder = async (req, res) => {
       cashDiscount: totalDiscounts,
       interest: totalInterest,
       totalAmount: totalPayableAmount,
-      // amountPaid: orderType === "credit" || orderType === "partial" ? 0 : totalPayableAmount,
-      // amountRemaining: orderType === "credit" || orderType === "partial" ? totalPayableAmount : 0,
-      paymentHistory: payment ? [payment._id] : [],
+      paymentHistory: payment ? [payment._id] : [], // Save the ObjectId reference of the payment
     });
 
     // Save the order
@@ -424,6 +419,8 @@ const createOrder = async (req, res) => {
     res.status(500).json({ error: "Failed to create order" });
   }
 };
+
+
 
 const addPayment = async (req, res) => {
   try {
@@ -463,8 +460,11 @@ const addPayment = async (req, res) => {
 
 const approvePaymentByAdmin = async (req, res) => {
   try {
-    const { paymentId } = req.body;
+    const { paymentId, amount } = req.body;
 
+    if (!paymentId || !amount) {
+      return res.status(400).json({ message: "Payment ID and amount are required." });
+    }
     // Fetch the payment
     const payment = await Payment.findById(paymentId);
     if (!payment) {
@@ -482,6 +482,7 @@ const approvePaymentByAdmin = async (req, res) => {
       payment.approved = true;
       payment.status = "approved";
       payment.updatedAt = Date.now();
+      payment.approvedAmount = amount;
       await payment.save();
 
       // Fetch the order associated with the payment
@@ -492,8 +493,9 @@ const approvePaymentByAdmin = async (req, res) => {
 
       // Update order details
       order.paymentStatus = "paymentApproved";
-      order.amountPaid += payment.amount;
-      order.amountRemaining -= payment.amount;
+      order.amountPaid += amount;
+      order.amountRemaining -= amount;
+
       order.orderStatus = "inProgress";
       if (order.paymentHistory.includes(payment._id) === false) {
         order.paymentHistory.push(payment._id);
@@ -501,7 +503,7 @@ const approvePaymentByAdmin = async (req, res) => {
       await order.save();
 
       // Update customer details
-      customer.totalSpent += payment.amount;
+      customer.totalSpent += amount;
       await customer.save();
 
       res.status(200).json({ message: "Payment approved successfully." });
@@ -631,10 +633,6 @@ const getPaymentsOfOneUser = async (req, res) => {
 const getAllOrderedProductsByUser = async (req, res) => {
   try {
     const { userId } = req.params;
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
     const orders = await Order.find({ customer: userId })
       .populate("products.product").sort({ createdAt: -1 })
       .exec();

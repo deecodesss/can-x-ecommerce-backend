@@ -22,6 +22,7 @@ const popupRoute = require("./routes/popupRoute");
 const giftCardRoute = require("./routes/giftCardRoute");
 const profileRoute = require("./routes/profileRoute");
 const hisaabRoute = require("./routes/hisaabRoute");
+const schemeRoute = require("./routes/schemeRoute");
 var path = require("path");
 const bodyParser = require("body-parser");
 const dotenv = require("dotenv");
@@ -36,13 +37,18 @@ const app = express();
 app.use(
   cors({
     origin: [
-      "https://canx-ecommerce-frontend.vercel.app",
+      "https://satpura-react-frontend.vercel.app",
       "http://localhost:5173",
+      "https://api.satpurabio.com",
     ],
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true,
   })
 );
+
+app.get('/', (req, res) => {
+  res.send('Hello, Satpura Backend!');
+});
 
 app.use("/images", express.static("images"));
 app.post(
@@ -93,6 +99,7 @@ app.use("/giftcard", giftCardRoute);
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use("/profile", profileRoute);
 app.use("/hisaab", hisaabRoute);
+app.use("/scheme", schemeRoute)
 
 
 const PORT = process.env.PORT || 5000;

@@ -1,8 +1,8 @@
 const axios = require('axios');
 
 async function sendOtp(phoneNumber) {
-    const clientId = '';
-    const clientSecret = '';
+    const clientId = 'YOUR_CLIENT_ID';
+    const clientSecret = 'YOUR_CLIENT_SECRET';
 
     const data = {
         phoneNumber: phoneNumber,
@@ -14,8 +14,8 @@ async function sendOtp(phoneNumber) {
     try {
         const response = await axios.post('https://auth.otpless.app/auth/v1/initiate/otp', data, {
             headers: {
-                'clientId': clientId,
-                'clientSecret': clientSecret,
+                'clientId': 'OGQXFV8PV7OK19HUF8Q5II0EVAR08Z26',
+                'clientSecret': 'yq8puco1sqnf8kenl43goxzc063jrm4f',
                 'Content-Type': 'application/json'
             }
         });

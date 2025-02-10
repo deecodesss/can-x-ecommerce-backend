@@ -98,58 +98,162 @@ const approveCustomer = async (req, res) => {
     customer.customerAccess = true;
     await customer.save();
 
-    //     const approvalEmailMessage = `
-    //   <html>
-    //     <head>
-    //       <style>
-    //         body {
-    //           font-family: Arial, sans-serif;
-    //           background-color: #f4f4f4;
-    //           padding: 20px;
-    //         }
-    //         .container {
-    //           background-color: #fff;
-    //           border-radius: 5px;
-    //           padding: 20px;
-    //           box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    //         }
-    //         h2 {
-    //           color: #333;
-    //           margin-bottom: 20px;
-    //         }
-    //         p {
-    //           color: #555;
-    //           margin-bottom: 10px;
-    //         }
-    //         .button {
-    //           background-color: #007bff;
-    //           color: #fff;
-    //           padding: 10px 20px;
-    //           text-decoration: none;
-    //           border-radius: 5px;
-    //           display: inline-block;
-    //         }
-    //       </style>
-    //     </head>
-    //     <body>
-    //       <div class="container">
-    //         <h2>Congratulations! Your account has been approved.</h2>
-    //         <p>Hello ${vendor.name},</p>
-    //         <p>Your account at our platform has been approved. You can now start purchasing.</p>
-    //         <p>If you have any questions or need assistance, feel free to contact us.</p>
-    //         // <a href="${process.env.CLIENT_URL}/vendor-login" class="button">Start Buying</a>
-    //       </div>
-    //     </body>
-    //   </html>
-    // `;
+    const approvalEmailMessage = `
+  <html>
+    <head>
+      <style>
+        body {
+          font-family: 'Segoe UI', Arial, sans-serif;
+          background-color: #f8f9fa;
+          margin: 0;
+          padding: 20px;
+        }
+        .container {
+          max-width: 600px;
+          margin: 0 auto;
+          background-color: #ffffff;
+          border-radius: 12px;
+          padding: 40px;
+          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+          text-align: center;
+          margin-bottom: 30px;
+        }
+        .success-icon {
+          font-size: 48px;
+          color: #28a745;
+          margin-bottom: 20px;
+        }
+        h2 {
+          color: #28a745;
+          margin: 0 0 20px 0;
+          font-size: 28px;
+          font-weight: 600;
+        }
+        .subheading {
+          color: #6c757d;
+          font-size: 16px;
+          margin-bottom: 30px;
+        }
+        p {
+          color: #495057;
+          line-height: 1.6;
+          margin-bottom: 15px;
+          font-size: 16px;
+        }
+        .cta-button {
+          background-color: #28a745;
+          color: #ffffff;
+          padding: 14px 28px;
+          text-decoration: none;
+          border-radius: 6px;
+          display: inline-block;
+          font-weight: 600;
+          margin: 20px 0;
+          transition: background-color 0.3s ease;
+        }
+        .cta-button:hover {
+          background-color: #218838;
+        }
+        .features {
+          margin: 30px 0;
+          padding: 20px;
+          background-color: #f8f9fa;
+          border-radius: 8px;
+        }
+        .feature-item {
+          display: flex;
+          align-items: center;
+          margin-bottom: 15px;
+        }
+        .feature-icon {
+          margin-right: 15px;
+          color: #28a745;
+          font-size: 20px;
+        }
+        .footer {
+          margin-top: 30px;
+          padding-top: 20px;
+          border-top: 1px solid #e9ecef;
+          text-align: center;
+          color: #6c757d;
+          font-size: 14px;
+        }
+        .social-links {
+          margin-top: 20px;
+        }
+        .social-link {
+          color: #6c757d;
+          text-decoration: none;
+          margin: 0 10px;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <div class="success-icon">✓</div>
+          <h2>Welcome Aboard! 🎉</h2>
+          <div class="subheading">Your account has been successfully approved</div>
+        </div>
+        
+        <p>Dear ${customer.firstName},</p>
+        
+        <p>Great news! Your account has been approved and you now have full access to our platform. We're excited to have you join our community of trusted partners.</p>
+        
+        <center>
+          <a href="[Your-Login-URL]" class="cta-button">
+            Start Shopping Now
+          </a>
+        </center>
 
+        <div class="features">
+          <h3 style="color: #28a745; margin-bottom: 15px;">What you can do now:</h3>
+          <div class="feature-item">
+            <span class="feature-icon">→</span>
+            <span>Browse our extensive product catalog</span>
+          </div>
+          <div class="feature-item">
+            <span class="feature-icon">→</span>
+            <span>Place orders with special partner pricing</span>
+          </div>
+          <div class="feature-item">
+            <span class="feature-icon">→</span>
+            <span>Track your orders in real-time</span>
+          </div>
+          <div class="feature-item">
+            <span class="feature-icon">→</span>
+            <span>Access exclusive deals and promotions</span>
+          </div>
+        </div>
+
+        <p>To get started, simply click the button above or log in to your account using your registered email and password.</p>
+
+        <p>If you need any assistance or have questions, our support team is here to help:</p>
+
+        <div class="footer">
+          <p>Thank you for choosing us as your business partner!</p>
+          <div class="social-links">
+            <a href="#" class="social-link">Facebook</a>
+            <a href="#" class="social-link">Twitter</a>
+            <a href="#" class="social-link">LinkedIn</a>
+          </div>
+          <p style="margin-top: 20px; font-size: 12px;">
+            © ${new Date().getFullYear()} Satpura Bio Fertiliser India Pvt Ltd. All rights reserved.
+          </p>
+        </div>
+      </div>
+    </body>
+  </html>
+`;
     // Send approval email
-    // await sendEmail(
-    //   vendor.name,
-    //   vendor.email,
-    //   "Account Approval",
-    //   approvalEmailMessage
-    // );
+    await sendEmail(
+      // customer.firstName,
+      customer.email,
+      "Account Approval",
+      approvalEmailMessage
+    );
 
     res.status(200).json({ message: "Customer approved successfully" });
   } catch (error) {
@@ -157,6 +261,94 @@ const approveCustomer = async (req, res) => {
     res.status(500).json({ message: "Internal Server Error" });
   }
 };
+
+const rejectCustomer = async (req, res) => {
+  try {
+    const { user } = req.body;
+    const customer = await User.findById(user._id);
+    if (!customer) {
+      return res.status(404).json({ message: "Customer not found" });
+    }
+    if (customer.customerRejected) {
+      return res.status(400).json({ message: "Customer is already rejected" });
+    }
+    customer.customerRejected = true;
+    await customer.save();
+
+    const rejectionEmailMessage = `
+  <html>
+    <head>
+      <style>
+        body {
+          font-family: Arial, sans-serif;
+          background-color: #f4f4f4;
+          padding: 20px;
+        }
+        .container {
+          background-color: #fff;
+          border-radius: 5px;
+          padding: 20px;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        h2 {
+          color: #dc3545;
+          margin-bottom: 20px;
+        }
+        p {
+          color: #555;
+          margin-bottom: 10px;
+        }
+        .button {
+          background-color: #6c757d;
+          color: #fff;
+          padding: 10px 20px;
+          text-decoration: none;
+          border-radius: 5px;
+          display: inline-block;
+        }
+        .contact-info {
+          margin-top: 20px;
+          padding-top: 15px;
+          border-top: 1px solid #eee;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <h2>Account Application Status Update</h2>
+        <p>Dear ${customer.firstName},</p>
+        <p>Thank you for your interest in joining our platform. After careful review of your application, we regret to inform you that we are unable to approve your account at this time.</p>
+        <p>This decision may be due to one or more of the following reasons:</p>
+        <ul style="color: #555; margin-bottom: 15px;">
+          <li>Incomplete or incorrect documentation</li>
+          <li>Unable to verify provided information</li>
+          <li>Does not meet our current eligibility criteria</li>
+        </ul>
+        <p>You are welcome to submit a new application after 30 days with updated documentation.</p>
+        <div class="contact-info">
+          <p>If you believe this decision was made in error or need further clarification, please contact our support team:</p>
+          <p>Phone: +91 08048978446</p>
+        </div>
+      </div>
+    </body>
+  </html>
+`;
+
+    // Send approval email
+    await sendEmail(
+      // customer.firstName,
+      customer.email,
+      "Account Rejection",
+      rejectionEmailMessage
+    );
+
+    res.status(200).json({ message: "Customer rejected successfully" });
+  } catch (error) {
+    console.error("Error approving customer:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
 
 const productApproval = async (req, res) => {
   try {
@@ -661,29 +853,106 @@ const getMenu = async (req, res) => {
 
 const addCategory = async (req, res) => {
   try {
-    console.log(req.body);
-    const { fileName, redirectUrl, categoryImageUrl, categoryLogoUrl } = req.body;
+    const { fileName } = req.body;
+    const categoryImage = req.files?.categoryImage?.[0]; // Access the uploaded category image file
+    const categoryLogo = req.files?.categoryLogo?.[0]; // Access the uploaded category logo file (if any)
 
-    // Create a new category with the provided URLs
+    // If category image is not uploaded, return an error
+    if (!categoryImage) {
+      return res.status(400).json({ message: "Category image is required" });
+    }
+
+    // Define paths for category image and logo
+    const categoryImagePath = categoryImage.path.replace(/\\/g, "/");
+    const categoryLogoPath = categoryLogo ? categoryLogo.path.replace(/\\/g, "/") : null;
+
+    // Assuming your server URL is stored in process.env.SERVER_URL (set this in your .env file)
+
+    // Construct full URLs for images
+    const categoryImageUrl = `${serverUrl}/${categoryImagePath}`;
+    const categoryLogoUrl = categoryLogo ? `${serverUrl}/images/categories/${categoryLogoPath}` : null;
+
+    // Create a new category with the provided details
     const newCategory = new Category({
       fileName,
-      redirectUrl,
-      imageFilePath: categoryImageUrl, // Store image URL instead of file path
-      logoFilePath: categoryLogoUrl,   // Store logo URL instead of file path
+      imageFilePath: categoryImageUrl, // Save the full image URL
+      logoFilePath: categoryLogoUrl,   // Save the full logo URL (if logo is provided)
     });
 
+    // Save the category to the database
     const savedCategory = await newCategory.save();
 
-    res.status(201).json({
-      message: "Category added successfully",
-      category: savedCategory,
-    });
+    // Respond with a success message and the saved category
+    res.status(201).json({ message: "Category added successfully", category: savedCategory });
   } catch (error) {
     console.error("Error adding category:", error);
     res.status(500).json({ message: "Internal Server Error" });
   }
 };
+const editCategory = async (req, res) => {
+  try {
+    const { categoryId, fileName } = req.body;
+    const categoryImage = req.files?.categoryImage?.[0]; // Access the uploaded category image file (optional)
+    const categoryLogo = req.files?.categoryLogo?.[0]; // Access the uploaded category logo file (optional)
 
+    // If categoryId or fileName is missing, return an error
+    if (!categoryId) {
+      return res.status(400).json({ message: "Category ID is required" });
+    }
+
+    // Find the category to update
+    const category = await Category.findById(categoryId);
+    if (!category) {
+      return res.status(404).json({ message: "Category not found" });
+    }
+
+    // Define paths for updated category image and logo (if provided)
+    let categoryImageUrl = category.imageFilePath; // Keep existing image if not uploaded
+    let categoryLogoUrl = category.logoFilePath; // Keep existing logo if not uploaded
+
+    // If new category image is uploaded, update the image path
+    if (categoryImage) {
+      categoryImageUrl = categoryImage.path.replace(/\\/g, "/");
+    }
+
+    // If new category logo is uploaded, update the logo path
+    if (categoryLogo) {
+      categoryLogoUrl = categoryLogo.path.replace(/\\/g, "/");
+    }
+
+    // Construct full URLs for updated images
+    categoryImageUrl = `${serverUrl}/${categoryImageUrl}`;
+    categoryLogoUrl = categoryLogo ? `${serverUrl}/${categoryLogoUrl}` : null;
+
+    // Update category fields
+    category.fileName = fileName || category.fileName;
+    category.imageFilePath = categoryImageUrl; // Update image path if new image is provided
+    category.logoFilePath = categoryLogoUrl; // Update logo path if new logo is provided
+
+    // Save the updated category to the database
+    const updatedCategory = await category.save();
+
+    // Respond with a success message and the updated category
+    res.status(200).json({ message: "Category updated successfully", category: updatedCategory });
+  } catch (error) {
+    console.error("Error updating category:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
+const deleteCategory = async (req, res) => {
+  try {
+    const categoryId = req.params.id;
+    const success = await Category.findByIdAndDelete(categoryId);
+    if (!success) {
+      return res.status(404).json({ message: "Category not found" });
+    }
+    res.status(200).json({ message: "Category deleted successfully" });
+  } catch (err) {
+    console.error("Error deleting category:", err);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+}
 
 // const addCategory = async (req, res) => {
 //   try {
@@ -787,13 +1056,17 @@ const addSeries = async (req, res) => {
 const getCategories = async (req, res) => {
   try {
     const categories = await Category.find();
+
+    // Use your actual server URL, like 'https://example.com' or process.env.SERVER_URL
+    const serverUrl = process.env.SERVER_URL || 'http://localhost:5000'; // Make sure to set this to your actual server URL
+
     const categoriesWithLinks = categories.map((category) => ({
       ...category._doc,
-      imageLink: `${serverUrl}/${category.imageFilePath.replace(/\\/g, "/")}`,
-      logoLink: `${serverUrl}/${category.logoFilePath.replace(/\\/g, "/")}`,
+      imageLink: `${serverUrl}/images/categories/${category.imageFilePath.replace(/\\/g, "/")}`,
+      logoLink: category.logoFilePath ? `${serverUrl}/images/categories/${category.logoFilePath.replace(/\\/g, "/")}` : null, // Check if logo exists
       subcategories: category.subcategories.map((sub) => ({
         ...sub._doc,
-        subLogoLink: `${serverUrl}/${sub.subLogoFilePath.replace(/\\/g, "/")}`,
+        subLogoLink: sub.subLogoFilePath ? `${serverUrl}/images/subcategories/${sub.subLogoFilePath.replace(/\\/g, "/")}` : null, // Check if subLogo exists
       })),
     }));
 
@@ -941,6 +1214,153 @@ const setUserCreditLimit = async (req, res) => {
   }
 };
 
+const updateOrderDetails = async (req, res) => {
+  try {
+    const orderId = req.params.id; // Get the orderId from the request parameters
+    const {
+      productId, 
+      variantId, 
+      orderType, 
+      cashDiscount, 
+      interest, 
+      paymentStatus, 
+      orderStatus,
+      deliveryDate,
+      amountPaid
+    } = req.body; // Get other fields from request body
+
+    // Validate if the necessary fields are provided
+    if (!productId || !variantId) {
+      return res.status(400).json({ message: 'Product ID and Variant ID are required' });
+    }
+
+    // Find the order by its ID
+    const order = await Order.findById(orderId)
+      .populate({
+        path: 'products.product', // Populate the product details
+        populate: {
+          path: 'variants', // Populate the variants for each product
+        },
+      })
+      .exec();
+
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    // Find the product in the order
+    const product = order.products.find((p) => p.product._id.toString() === productId);
+    if (!product) {
+      return res.status(404).json({ message: 'Product not found in this order' });
+    }
+
+    // Check if the selected variant exists in the product's variants
+    const selectedVariant = product.product.variants.find(
+      (variant) => variant._id.toString() === variantId
+    );
+    if (!selectedVariant) {
+      return res.status(404).json({ message: 'Variant not found for the selected product' });
+    }
+
+    // Update the variant for the product in the order
+    product.variant = selectedVariant;
+
+    // Recalculate the product price based on the selected variant
+    product.price = selectedVariant.price;
+    product.dueAmount = product.price * product.quantity;
+
+    // Recalculate the total amount for the order
+    let newTotalAmount = 0;
+    order.products.forEach((prod) => {
+      newTotalAmount += prod.price * prod.quantity;
+    });
+
+    order.totalAmount = newTotalAmount;
+    order.amountRemaining = order.totalAmount - order.amountPaid;
+
+    // Update other editable fields
+    if (orderType) order.orderType = orderType;
+    if (cashDiscount !== undefined) order.cashDiscount = cashDiscount;
+    if (interest !== undefined) order.interest = interest;
+    if (paymentStatus) order.paymentStatus = paymentStatus;
+    if (orderStatus) order.orderStatus = orderStatus;
+    if (deliveryDate) order.deliveryDate = new Date(deliveryDate);
+    if (amountPaid !== undefined) {
+      order.amountPaid = amountPaid;
+      order.amountRemaining = order.totalAmount - amountPaid;  // Update amount remaining
+    }
+
+    // Save the updated order
+    await order.save();
+
+    return res.status(200).json({
+      success: true,
+      message: 'Order details updated successfully',
+      data: {
+        _id: order._id,
+        orderId: order.orderId,
+        customer: order.customer,
+        orderType: order.orderType,
+        products: order.products.map(prod => ({
+          product: prod.product,
+          quantity: prod.quantity,
+          variant: prod.variant,
+          price: prod.price,
+          dueAmount: prod.dueAmount,
+          cashDiscount: prod.cashDiscount,
+          interest: prod.interest,
+          dueDate: prod.dueDate,
+        })),
+        address: order.address,
+        cashDiscount: order.cashDiscount,
+        interest: order.interest,
+        totalAmount: order.totalAmount,
+        amountPaid: order.amountPaid,
+        amountRemaining: order.amountRemaining,
+        paymentHistory: order.paymentHistory,
+        orderStatus: order.orderStatus,
+        paymentStatus: order.paymentStatus,
+        deliveryDate: order.deliveryDate,
+        createdAt: order.createdAt,
+        updatedAt: order.updatedAt,
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+const getOrderDetails = async (req, res) => {
+  try {
+    const orderId = req.params.id; // Get the orderId from the request parameters
+    console.log(orderId);
+    // Find the order by its ID
+    const order = await Order.findById(orderId)
+      .populate({
+        path: 'products.product', // Populate the product details
+        populate: {
+          path: 'variants', // Populate the variants for each product
+        },
+      })
+      .exec(); // Using exec to ensure a proper promise is returned
+
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    // Log the order to check if it's populated correctly
+    console.log("Populated Order:", JSON.stringify(order, null, 2));
+
+    return res.status(200).json({
+      success: true,
+      message: 'Order details fetched successfully',
+      data: order,
+    });
+  } catch (error) {
+    return res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
 module.exports = {
   setUserCreditLimit,
   approveVendor,
@@ -963,6 +1383,8 @@ module.exports = {
   updateMenu,
   getMenu,
   addCategory,
+  editCategory,
+  deleteCategory,
   addSubcategory,
   addSeries,
   getCategories,
@@ -971,4 +1393,7 @@ module.exports = {
   createBlog,
   getAllBlogs,
   deleteBlog,
+  rejectCustomer,
+  updateOrderDetails,
+  getOrderDetails,
 };

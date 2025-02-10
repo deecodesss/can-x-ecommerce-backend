@@ -42,6 +42,12 @@ const userSchema = new mongoose.Schema({
   vendorAccess: { type: Boolean, default: false },
   customerAccess: { type: Boolean, default: false },
   couponsApplied: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Coupon' }],
+  totalSpent: { type: Number, default: 0 },
+  customerRejected: { type: Boolean },
+  availedScheme: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Scheme",
+  },
   createdAt: {
     type: Date,
     default: Date.now,
